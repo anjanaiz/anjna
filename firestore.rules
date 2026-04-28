@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // VALIDATION HELPERS
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidRecord(data) {
+      return data.keys().hasAll(['maintainerName', 'role', 'department', 'machineId', 'machineName', 'workType', 'timeType', 'date', 'startTime', 'finishTime', 'duration', 'description', 'createdAt'])
+        && data.keys().size() == 13
+        && data.maintainerName is string && data.maintainerName.size() <= 200
+        && data.role in ['Admin', 'Supervisor', 'Maintainer']
+        && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other']
+        && data.machineId is string && data.machineId.size() <= 128
+        && data.machineName is string && data.machineName.size() <= 200
+        && data.workType in ['Repair', 'Service', 'Break Down']
+        && data.timeType in ['Now', 'Previous']
+        && data.date is string
+        && data.startTime is string
+        && data.finishTime is string
+        && data.duration is number
+        && data.description is string && data.description.size() <= 6000
+        && data.createdAt is string;
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['department', 'machineId', 'machineName', 'workType', 'description', 'status', 'createdAt'])
+        && data.keys().size() == 7
+        && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other']
+        && data.machineId is string && data.machineId.size() <= 128
+        && data.machineName is string && data.machineName.size() <= 200
+        && data.workType in ['Repair', 'Service', 'Break Down']
+        && data.description is string && data.description.size() <= 6000
+        && data.status in ['pending', 'addressed']
+        && data.createdAt is string;
+    }
+
+    // RECORDS COLLECTION - Public access per user request to remove security layers
+    match /records/{recordId} {
+      allow read: if true;
+      allow create: if isValidId(recordId) && isValidRecord(request.resource.data);
+      allow update: if isValidId(recordId) && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['description'])
+        && (request.resource.data.description is string && request.resource.data.description.size() <= 6000)
+      );
+      allow delete: if true;
+    }
+
+    // MACHINE REPORTS COLLECTION
+    match /machine_reports/{reportId} {
+      allow read: if true;
+      allow create: if isValidId(reportId) && isValidReport(request.resource.data);
+      allow update: if isValidId(reportId) && (
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'description'])
+        && (!('status' in request.resource.data) || request.resource.data.status in ['pending', 'addressed'])
+        && (!('description' in request.resource.data) || (request.resource.data.description is string && request.resource.data.description.size() <= 6000))
+      );
+      allow delete: if true;
+    }
+
+    function isValidMachine(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 200
+             && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other'];
+    }
+
+    match /machines/{machineId} {
+      allow read: if true;
+      allow write: if isValidId(machineId) && isValidMachine(request.resource.data);
+      allow delete: if true;
+    }
+  }
+}
