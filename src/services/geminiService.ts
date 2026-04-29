@@ -18,18 +18,17 @@ export async function translateToEnglish(text: string): Promise<string> {
   
   try {
     const ai = getAI();
-    const model = ai.getGenerativeModel({
-      model: "gemini-3-flash-preview",
-    });
     
-    const response = await model.generateContent(`Translate the following maintenance report description from Sinhala to English. 
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Translate the following maintenance report description from Sinhala to English. 
       If the text is already in English, return it exactly as it is without any changes.
       Do not include any other text, just the translation or the original if it's already English.
       
-      Description: ${text}`);
+      Description: ${text}`,
+    });
     
-    const result = await response.response;
-    return result.text()?.trim() || text;
+    return response.text?.trim() || text;
   } catch (error) {
     console.error("Translation error:", error);
     return text; // Fallback to original text if translation or logic fails

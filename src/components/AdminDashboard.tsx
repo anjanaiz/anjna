@@ -21,6 +21,7 @@ export default function AdminDashboard({
   const [activeTab, setActiveTab] = useState<'users' | 'structure' | 'records'>('records');
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddingMachine, setIsAddingMachine] = useState(false);
+  const [editingMachineId, setEditingMachineId] = useState<string | null>(null);
   const [newMachine, setNewMachine] = useState<Partial<Machine>>({ department: 'Modular' });
 
   const filteredRecords = records.filter(r => 
@@ -29,64 +30,28 @@ export default function AdminDashboard({
     (r.department || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const resizeImage = (base64Str: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        // Use WebP to support transparency and maintain high compression
-        resolve(canvas.toDataURL('image/webp', 0.8));
-      };
-    });
+  const startEditMachine = (machine: Machine) => {
+    setNewMachine(machine);
+    setEditingMachineId(machine.id);
+    setIsAddingMachine(true);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Str = reader.result as string;
-        const resized = await resizeImage(base64Str);
-        setNewMachine(prev => ({ ...prev, image: resized }));
-      };
-      reader.readAsDataURL(file);
-    }
+  const closeMachineModal = () => {
+    setIsAddingMachine(false);
+    setEditingMachineId(null);
+    setNewMachine({ department: 'Modular' });
   };
 
   const submitMachine = async () => {
     if (!newMachine.name || !newMachine.department) return;
     const machine: Machine = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: editingMachineId || Math.random().toString(36).substr(2, 9),
       name: newMachine.name,
-      department: newMachine.department,
+      department: newMachine.department as any,
       image: newMachine.image
     };
     await onAddMachine(machine);
-    setIsAddingMachine(false);
-    setNewMachine({ department: 'Modular' });
+    closeMachineModal();
   };
 
   return (
@@ -281,10 +246,16 @@ export default function AdminDashboard({
               <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 {machines.map(machine => (
                   <div key={machine.id} className="p-5 sm:p-6 border-2 border-slate-100 rounded-2xl text-sm bg-white shadow-sm flex flex-col gap-3 group hover:border-slate-900 transition-all relative">
-                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                      <button 
+                        onClick={() => startEditMachine(machine)}
+                        className="p-2 text-slate-300 hover:text-blue-500 transition-colors bg-white border border-slate-100 rounded-lg shadow-sm"
+                      >
+                        <Edit2 size={16} />
+                      </button>
                       <button 
                         onClick={() => onDeleteMachine(machine.id)}
-                        className="p-2 text-slate-300 hover:text-singer-red transition-colors"
+                        className="p-2 text-slate-300 hover:text-singer-red transition-colors bg-white border border-slate-100 rounded-lg shadow-sm"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -321,14 +292,18 @@ export default function AdminDashboard({
                   </button>
                   
                   <div className="mb-10">
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none mb-2">New Asset</h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocol 04: Hardware Registration</p>
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none mb-2">
+                      {editingMachineId ? 'Update Asset' : 'New Asset'}
+                    </h2>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic font-bold">
+                      Protocol 04: {editingMachineId ? 'Hardware Revision' : 'Hardware Registration'}
+                    </p>
                   </div>
 
                   <div className="space-y-8">
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Image (Base64)</label>
-                       <div className="flex gap-4 items-center">
+                    <div className="space-y-4">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic font-bold">Step 01: Host Asset Visualization (URL)</label>
+                       <div className="flex flex-col sm:flex-row gap-4">
                          <div className="w-24 h-24 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                            {newMachine.image ? (
                              <img src={newMachine.image} alt="Preview" className="w-full h-full object-cover" />
@@ -336,10 +311,17 @@ export default function AdminDashboard({
                              <ImagePlus className="text-slate-300" size={24} />
                            )}
                          </div>
-                         <label className="flex-1 h-24 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all cursor-pointer bg-slate-50/50">
-                           <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                           Click to Upload Asset Frame
-                         </label>
+                         <div className="flex-1">
+                           <div className="relative h-full">
+                             <input 
+                               type="text" 
+                               placeholder="PASTE IMAGE URL (GITHUB/WEB)..."
+                               value={newMachine.image || ''}
+                               onChange={(e) => setNewMachine(prev => ({ ...prev, image: e.target.value }))}
+                               className="w-full h-full bg-slate-50 border-2 border-slate-100 focus:border-slate-900 rounded-2xl px-6 text-[10px] font-black outline-none transition-all placeholder:text-slate-200 uppercase"
+                             />
+                           </div>
+                         </div>
                        </div>
                     </div>
 
@@ -377,7 +359,7 @@ export default function AdminDashboard({
                       disabled={!newMachine.name}
                       className="w-full h-20 bg-singer-red text-white rounded-[24px] font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-singer-red/20 hover:bg-slate-900 transition-all disabled:opacity-50 disabled:grayscale italic"
                     >
-                      COMMIT TO CORE REGISTRY
+                      {editingMachineId ? 'REVISE CORE REGISTRY' : 'COMMIT TO CORE REGISTRY'}
                     </button>
                   </div>
                 </motion.div>
