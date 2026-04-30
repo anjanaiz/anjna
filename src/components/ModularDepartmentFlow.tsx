@@ -20,11 +20,13 @@ import { cn } from '../lib/utils';
 export default function ModularDepartmentFlow({ 
   onBack, 
   onReport,
-  machines
+  machines,
+  departmentName = 'Modular'
 }: { 
   onBack: () => void, 
   onReport: (report: MachineReport) => Promise<void>,
-  machines: Machine[]
+  machines: Machine[],
+  departmentName?: string
 }) {
   const [step, setStep] = useState<'machines' | 'work-types' | 'description'>('machines');
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
@@ -32,7 +34,7 @@ export default function ModularDepartmentFlow({
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const modularMachines = machines.filter(m => m.department === 'Modular');
+  const filteredMachines = machines.filter(m => m.department === departmentName);
 
   const workTypes: { type: WorkType; icon: any; color: string; desc: string }[] = [
     { type: 'Repair', icon: Hammer, color: 'bg-amber-500', desc: 'Fix physical damage or failure' },
@@ -46,7 +48,7 @@ export default function ModularDepartmentFlow({
     setIsSubmitting(true);
     const report: MachineReport = {
       id: Math.random().toString(36).substr(2, 9),
-      department: 'Modular',
+      department: (selectedMachine.department as any) || departmentName,
       machineId: selectedMachine.id,
       machineName: selectedMachine.name,
       workType: wType,
@@ -108,7 +110,7 @@ export default function ModularDepartmentFlow({
           
           <div className="text-center">
             <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
-              Modular Department
+              {departmentName} Department
             </h2>
             <h1 className="text-2xl sm:text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">
               {step === 'machines' ? 'Machine Selection' : 
@@ -127,20 +129,17 @@ export default function ModularDepartmentFlow({
               exit={{ opacity: 0, x: -20 }}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
             >
-              {modularMachines.map((m, idx) => (
+              {filteredMachines.map((m, idx) => (
                 <button
                   key={m.id}
                   onClick={() => handleMachineSelect(m)}
                   className="group bg-white border-2 border-slate-200 rounded-[28px] p-6 text-left hover:border-slate-900 hover:shadow-xl transition-all relative overflow-hidden"
                 >
-                  <div className="absolute top-0 right-0 p-4 text-slate-50 text-6xl font-black italic opacity-0 group-hover:opacity-100 transition-opacity uppercase">
-                    {m.id}
-                  </div>
-                  <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center mb-4 group-hover:bg-singer-red transition-colors overflow-hidden">
+                  <div className="w-32 h-32 bg-slate-50 text-slate-400 rounded-[32px] flex items-center justify-center mb-8 group-hover:bg-singer-red group-hover:text-white transition-all overflow-hidden ring-8 ring-slate-50 group-hover:ring-singer-red/10 shadow-inner">
                     {m.image ? (
                       <img src={m.image} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <Settings size={24} />
+                      <Settings size={48} />
                     )}
                   </div>
                   <div className="space-y-1">

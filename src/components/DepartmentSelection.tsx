@@ -12,16 +12,30 @@ import {
 import { cn } from '../lib/utils';
 import { DEPARTMENTS } from '../constants';
 
-export default function DepartmentSelection({ onSelect, onBack }: { onSelect: (dept: string) => void, onBack: () => void }) {
-  // We need to specifically show "Maintenance Department" as the main entry point if that's what the user prefers.
-  
+import { Machine } from '../types';
+
+export default function DepartmentSelection({ 
+  onSelect, 
+  onBack, 
+  machines = [] 
+}: { 
+  onSelect: (dept: string) => void, 
+  onBack: () => void,
+  machines?: Machine[]
+}) {
   const depts = [
     { id: 'maintenance', name: 'Maintenance Department', icon: Wrench, color: 'bg-singer-red', tagline: 'Maintenance Machine' },
     { id: 'Agro', name: 'Agro Department', icon: Droplets, color: 'bg-slate-900', tagline: 'Assemble Water Pump' },
     { id: 'Modular', name: 'Modular Department', icon: Layers, color: 'bg-slate-900', tagline: 'Build Particle Board Furniture' },
     { id: 'Solid', name: 'Solid Department', icon: TreeDeciduous, color: 'bg-slate-900', tagline: 'Build Wood Furniture' },
     { id: 'Sofa', name: 'Sofa Department', icon: Sofa, color: 'bg-slate-900', tagline: 'Build Sofa' },
+    { id: 'Other', name: 'Other Department', icon: Wind, color: 'bg-slate-900', tagline: 'Misc Operations' },
   ];
+
+  const getMachinesForDept = (deptId: string) => {
+    if (deptId === 'maintenance') return [];
+    return machines.filter(m => m.department === deptId);
+  };
 
   return (
     <div className="flex-1 flex flex-col bg-white min-h-0 overflow-y-auto relative">
@@ -81,9 +95,21 @@ export default function DepartmentSelection({ onSelect, onBack }: { onSelect: (d
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-singer-red transition-colors">
                     {dept.tagline}
                   </div>
-                  <h3 className="text-2xl sm:text-3xl font-black uppercase text-slate-800 tracking-tighter group-hover:text-slate-900">
+                  <h3 className="text-2xl sm:text-3xl font-black uppercase text-slate-800 tracking-tighter group-hover:text-slate-900 border-b-2 border-slate-100 pb-2 mb-4">
                     {dept.name}
                   </h3>
+                  
+                  {/* Machines List */}
+                  {getMachinesForDept(dept.id).length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {getMachinesForDept(dept.id).slice(0, 4).map((m) => (
+                        <span key={m.id} className="text-[8px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase tracking-wider group-hover:bg-singer-red/10 group-hover:text-singer-red transition-colors" dangerouslySetInnerHTML={{ __html: m.name.replace('<br>', ' ') }} />
+                      ))}
+                      {getMachinesForDept(dept.id).length > 4 && (
+                        <span className="text-[8px] font-black text-slate-300">+{getMachinesForDept(dept.id).length - 4} MORE</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-auto pt-4 flex items-center gap-2 text-slate-900 font-black text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">

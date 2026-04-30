@@ -70,6 +70,7 @@ type Page = 'splash' | 'department-selection' | 'login' | 'admin' | 'supervisor'
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('splash');
+  const [selectedDept, setSelectedDept] = useState<string>('Modular');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [reports, setReports] = useState<MachineReport[]>([]);
@@ -213,14 +214,14 @@ export default function App() {
       case 'department-selection':
         return (
           <DepartmentSelection 
+            machines={machines}
             onBack={() => setCurrentPage('splash')}
             onSelect={(deptId) => {
               if (deptId === 'maintenance') {
                 setCurrentPage('login');
-              } else if (deptId === 'Modular') {
-                setCurrentPage('modular-dept');
               } else {
-                alert(`${deptId} Portal is currently under maintenance. Please use the Maintenance module.`);
+                setSelectedDept(deptId);
+                setCurrentPage('modular-dept');
               }
             }} 
           />
@@ -231,6 +232,7 @@ export default function App() {
             onBack={() => setCurrentPage('department-selection')} 
             onReport={addReport}
             machines={machines}
+            departmentName={selectedDept}
           />
         );
       case 'login':
