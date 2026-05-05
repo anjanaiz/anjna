@@ -1,31 +1,92 @@
-import { useState } from 'react';
-import { MaintenanceRecord, Department, MachineReport } from '../types';
+import { useState, useMemo } from 'react';
+import { MaintenanceRecord, Department, MachineReport, Machine, Notification, User } from '../types';
 import { DEPARTMENTS } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, Filter, Download, ChevronLeft, ChevronRight, Bell, CheckCircle2, MessageSquareWarning, X, LogOut, Edit2, Save } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
+import { 
+  Calendar as CalendarIcon, Filter, Download, ChevronLeft, ChevronRight, 
+  Bell, CheckCircle2, MessageSquareWarning, X, LogOut, Edit2, Save,
+  BarChart3, Map as MapIcon, Settings, Activity, Layers, Users, Cpu, Maximize
+} from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfYear, endOfYear, eachMonthOfInterval, isSameMonth } from 'date-fns';
 import { cn, formatDate, formatTime } from '../lib/utils';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import ModularMap from './ModularMap';
+import NotificationTray from './NotificationTray';
 
 export default function SupervisorDashboard({ 
   records, 
   reports = [], 
+  machines = [],
   onUpdateReport,
   onUpdateRecord,
-  onLogout 
+  onLogout,
+  notifications = [],
+  onMarkNotificationAsRead
 }: { 
   records: MaintenanceRecord[], 
   reports: MachineReport[],
+  machines: Machine[],
   onUpdateReport: (id: string, updates: Partial<MachineReport>) => Promise<void>,
   onUpdateRecord: (id: string, updates: Partial<MaintenanceRecord>) => Promise<void>,
-  onLogout: () => void 
+  onLogout: () => void,
+  notifications?: Notification[],
+  onMarkNotificationAsRead: (id: string, userId: string) => Promise<void>
 }) {
-  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'analysis' | 'map'>('pending');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [filterDept, setFilterDept] = useState<Department | 'All'>('All');
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
+
+  const [selectedAnalysisDept, setSelectedAnalysisDept] = useState<Department>(DEPARTMENTS[0]);
+  const [selectedAnalysisMachineId, setSelectedAnalysisMachineId] = useState<string | null>(null);
+
+  const analysisData = useMemo(() => {
+    // Filter records for the current month
+    const monthlyRecords = records.filter(r => isSameMonth(new Date(r.date), currentMonth));
+    
+    // Detailed stats for the specifically selected machine or ALL machines in dept
+    if (selectedAnalysisMachineId === 'all') {
+      const deptMachines = machines.filter(m => m.department === selectedAnalysisDept);
+      return deptMachines.map(machine => {
+        const machineRecords = monthlyRecords.filter(r => r.machineId === machine.id);
+        const name = machine.name.replace(/<br\s*\/?>/gi, ' ');
+        return {
+          name: name.length > 15 ? name.substring(0, 12) + '...' : name,
+          fullName: name,
+          "Broke Down": machineRecords.filter(r => r.workType === 'Break Down').length,
+          "Serviced": machineRecords.filter(r => r.workType === 'Service').length,
+          "Repaired": machineRecords.filter(r => r.workType === 'Repair').length,
+        };
+      }).filter(m => (m["Broke Down"] + m["Serviced"] + m["Repaired"]) > 0);
+    } else if (selectedAnalysisMachineId) {
+      const machine = machines.find(m => m.id === selectedAnalysisMachineId);
+      if (machine) {
+        const machineRecords = monthlyRecords.filter(r => r.machineId === machine.id);
+        const name = machine.name.replace(/<br\s*\/?>/gi, ' ');
+        return [{
+          name: name,
+          fullName: name,
+          "Broke Down": machineRecords.filter(r => r.workType === 'Break Down').length,
+          "Serviced": machineRecords.filter(r => r.workType === 'Service').length,
+          "Repaired": machineRecords.filter(r => r.workType === 'Repair').length,
+        }];
+      }
+    }
+    
+    return [];
+  }, [records, machines, currentMonth, selectedAnalysisMachineId, selectedAnalysisDept]);
+
+  const selectedMachineStats = selectedAnalysisMachineId === 'all' 
+    ? {
+        "Broke Down": analysisData.reduce((acc, curr) => acc + curr["Broke Down"], 0),
+        "Serviced": analysisData.reduce((acc, curr) => acc + curr["Serviced"], 0),
+        "Repaired": analysisData.reduce((acc, curr) => acc + curr["Repaired"], 0),
+      }
+    : analysisData[0] || null;
+  const filteredMachinesForDept = machines.filter(m => m.department === selectedAnalysisDept);
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentMonth),
@@ -90,17 +151,22 @@ export default function SupervisorDashboard({
           </h1>
           <p className="mt-4 sm:mt-6 text-slate-400 font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[8px] sm:text-[10px]">Division Oversight & Performance Tracking</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-          <div className="flex bg-white p-1.5 rounded-2xl border-2 border-slate-900 shadow-lg">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+          <NotificationTray 
+            notifications={notifications} 
+            user={{ id: 'supervisor-1', name: 'Supervisor', role: 'Supervisor' }} 
+            onMarkRead={onMarkNotificationAsRead} 
+          />
+          <div className="flex bg-white p-1.5 rounded-2xl border-2 border-slate-900 shadow-lg overflow-x-auto no-scrollbar w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('pending')}
               className={cn(
-                "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                "px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
                 activeTab === 'pending' ? "bg-singer-red text-white" : "text-slate-400 hover:text-slate-900"
               )}
             >
               <Bell size={16} />
-              Pending Tasks
+              Pending
               {pendingReports.length > 0 && (
                 <span className={cn(
                   "px-1.5 py-0.5 rounded-full text-[8px]",
@@ -113,12 +179,32 @@ export default function SupervisorDashboard({
             <button
               onClick={() => setActiveTab('completed')}
               className={cn(
-                "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                "px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
                 activeTab === 'completed' ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-900"
               )}
             >
               <CheckCircle2 size={16} />
-              Completed Tasks
+              Completed
+            </button>
+            <button
+              onClick={() => setActiveTab('analysis')}
+              className={cn(
+                "px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
+                activeTab === 'analysis' ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-900"
+              )}
+            >
+              <BarChart3 size={16} />
+              Analysis
+            </button>
+            <button
+              onClick={() => setActiveTab('map')}
+              className={cn(
+                "px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
+                activeTab === 'map' ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-900"
+              )}
+            >
+              <MapIcon size={16} />
+              Map
             </button>
           </div>
           <button 
@@ -132,7 +218,7 @@ export default function SupervisorDashboard({
       </div>
 
       <AnimatePresence mode="wait">
-        {activeTab === 'pending' ? (
+        {activeTab === 'pending' && (
           <motion.div
             key="pending-view"
             initial={{ opacity: 0, y: 20 }}
@@ -321,7 +407,9 @@ export default function SupervisorDashboard({
               )}
             </div>
           </motion.div>
-        ) : (
+        )}
+
+        {activeTab === 'completed' && (
           <motion.div
             key="completed-view"
             initial={{ opacity: 0, x: 20 }}
@@ -524,6 +612,239 @@ export default function SupervisorDashboard({
                   </div>
                 </div>
               )}
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'analysis' && (
+          <motion.div
+            key="analysis-view"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="space-y-8"
+          >
+            {/* Controls Section */}
+            <div className="bg-white p-8 rounded-[32px] border-2 border-slate-900 shadow-xl space-y-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div>
+                  <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Machine Analysis</h2>
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Manual Filter & Diagnostic View</p>
+                </div>
+                <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border-2 border-slate-200">
+                  <button onClick={prevMonth} className="p-3 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-200"><ChevronLeft size={20}/></button>
+                  <span className="font-black uppercase tracking-tighter text-slate-900 px-4 min-w-[140px] text-center">{format(currentMonth, 'MMMM yyyy')}</span>
+                  <button onClick={nextMonth} className="p-3 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-200"><ChevronRight size={20}/></button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">1. Select Department</label>
+                  <div className="flex flex-wrap gap-2">
+                    {DEPARTMENTS.map(dept => (
+                      <button
+                        key={dept}
+                        onClick={() => {
+                          setSelectedAnalysisDept(dept);
+                          setSelectedAnalysisMachineId(null);
+                        }}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all",
+                          selectedAnalysisDept === dept 
+                            ? "bg-slate-900 border-slate-900 text-white shadow-md scale-105" 
+                            : "bg-white border-slate-200 text-slate-400 hover:border-slate-900 hover:text-slate-900"
+                        )}
+                      >
+                        {dept}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">2. Select Machine</label>
+                  <select 
+                    value={selectedAnalysisMachineId || ''} 
+                    onChange={(e) => setSelectedAnalysisMachineId(e.target.value)}
+                    className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 font-black text-slate-900 uppercase tracking-tighter appearance-none focus:border-singer-red focus:outline-none transition-colors"
+                  >
+                    <option value="">Choose a machine...</option>
+                    <option value="all">ALL MACHINES</option>
+                    {filteredMachinesForDept.map(m => (
+                      <option key={m.id} value={m.id}>{m.name.replace(/<br\s*\/?>/gi, ' ')}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Analysis Result */}
+            {selectedAnalysisMachineId && (selectedMachineStats || analysisData.length > 0) ? (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Chart Block */}
+                <div className="lg:col-span-2 bg-white rounded-[40px] p-8 sm:p-12 shadow-xl border-2 border-slate-100 relative overflow-hidden group">
+                  <div className="relative z-10 space-y-8">
+                    <div className="flex items-center gap-6">
+                      <div className="w-12 h-1 bg-singer-red" />
+                      <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter italic">Operational Metrics</h3>
+                    </div>
+
+                    <div className="h-[400px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={analysisData} margin={{ top: 20, right: 30, left: 20, bottom: selectedAnalysisMachineId === 'all' ? 60 : 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis 
+                            dataKey="name" 
+                            hide={selectedAnalysisMachineId !== 'all'}
+                            angle={-45}
+                            textAnchor="end"
+                            interval={0}
+                            tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }}
+                          />
+                          <YAxis 
+                            tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }}
+                            allowDecimals={false}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              borderRadius: '16px', 
+                              border: '2px solid #0f172a', 
+                              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                              fontSize: '12px',
+                              fontWeight: '900',
+                              textTransform: 'uppercase'
+                            }}
+                          />
+                          <Legend 
+                            wrapperStyle={{ paddingTop: '20px', fontWeight: '900', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }} 
+                          />
+                          <Bar dataKey="Broke Down" fill="#ef4444" radius={[8, 8, 0, 0]} barSize={selectedAnalysisMachineId === 'all' ? undefined : 60} />
+                          <Bar dataKey="Serviced" fill="#3b82f6" radius={[8, 8, 0, 0]} barSize={selectedAnalysisMachineId === 'all' ? undefined : 60} />
+                          <Bar dataKey="Repaired" fill="#f59e0b" radius={[8, 8, 0, 0]} barSize={selectedAnalysisMachineId === 'all' ? undefined : 60} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Counter Cards */}
+                <div className="flex flex-col gap-4">
+                  {[
+                    { label: selectedAnalysisMachineId === 'all' ? 'Total Break Downs' : 'Machine Break Downs', value: selectedMachineStats?.["Broke Down"] || 0, color: 'text-red-600', bg: 'bg-red-50' },
+                    { label: selectedAnalysisMachineId === 'all' ? 'Total Times Serviced' : 'Times Serviced', value: selectedMachineStats?.["Serviced"] || 0, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: selectedAnalysisMachineId === 'all' ? 'Total Repairs' : 'Repairs Completed', value: selectedMachineStats?.["Repaired"] || 0, color: 'text-amber-600', bg: 'bg-amber-50' }
+                  ].map((stat, i) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className={cn("p-8 rounded-[32px] border-2 border-slate-100 flex flex-col justify-center", stat.bg)}
+                    >
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</h4>
+                      <p className={cn("text-6xl font-black italic tracking-tighter", stat.color)}>{stat.value}</p>
+                    </motion.div>
+                  ))}
+                  <div className="flex-1 bg-slate-900 rounded-[32px] p-8 flex flex-col justify-end text-white relative overflow-hidden">
+                    <Settings className="absolute -top-4 -right-4 w-32 h-32 opacity-10 animate-spin-slow" />
+                    <div className="relative z-10">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Scope</p>
+                      <h3 className="text-xl font-black uppercase tracking-tighter italic leading-tight">
+                        {selectedAnalysisMachineId === 'all' 
+                          ? `${selectedAnalysisDept} Department (All)`
+                          : machines.find(m => m.id === selectedAnalysisMachineId)?.name.replace(/<br\s*\/?>/gi, ' ')}
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="py-32 text-center bg-white rounded-[40px] border-4 border-dashed border-slate-100">
+                <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center text-slate-200 mx-auto mb-6">
+                  <BarChart3 size={48} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-300 uppercase tracking-widest">Select a machine to initiate analysis</h3>
+                <p className="text-slate-400 font-medium italic mt-2 text-sm">Real-time telemetry and service history nodes will populate here.</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === 'map' && (
+          <motion.div
+            key="future-improvements"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-12"
+          >
+            <div className="bg-white p-12 rounded-[40px] border-2 border-slate-100 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-12 opacity-[0.03] text-slate-900 text-[12rem] font-black italic select-none">
+                2026
+              </div>
+              <div className="relative z-10 space-y-6">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-2 bg-singer-red" />
+                  <h2 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Strategic <span className="text-singer-red underline decoration-slate-900 underline-offset-8">Roadmap</span></h2>
+                </div>
+                <p className="text-xl font-bold text-slate-400 uppercase tracking-widest max-w-2xl">Visualizing the future of machine diagnostics and spatial floor management.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[
+                {
+                  title: "Multi-Dept Support",
+                  desc: "Expanded interactive maps for Packaging, Sewing, and Finishing departments for global oversight.",
+                  icon: <Layers size={32} />,
+                  color: "bg-blue-50 text-blue-600"
+                },
+                {
+                  title: "Efficiency Heatmaps",
+                  desc: "Visualize machine downtime frequency through thermal overlays on the floor plan.",
+                  icon: <Activity size={32} />,
+                  color: "bg-red-50 text-red-600"
+                },
+                {
+                  title: "Maintainer Tracking",
+                  desc: "Real-time location nodes for active maintainers to optimize task distribution.",
+                  icon: <Users size={32} />,
+                  color: "bg-green-50 text-green-600"
+                },
+                {
+                  title: "AI Predictive Alerts",
+                  desc: "Smart telemetry data predicting failures before they occur based on service frequency.",
+                  icon: <Cpu size={32} />,
+                  color: "bg-purple-50 text-purple-600"
+                },
+                {
+                  title: "Full-Screen Mode",
+                  desc: "Immersive spatial view for large command center displays with real-time incident highlights.",
+                  icon: <Maximize size={32} />,
+                  color: "bg-orange-50 text-orange-600"
+                },
+                {
+                  title: "Custom Grid Editor",
+                  desc: "Allow supervisors to drag and drop machine nodes to mirror physical factory floor changes.",
+                  icon: <Settings size={32} />,
+                  color: "bg-slate-50 text-slate-600"
+                }
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="bg-white p-10 rounded-[32px] border-2 border-slate-100 shadow-lg hover:shadow-2xl hover:border-slate-900 transition-all group"
+                >
+                  <div className={cn("w-16 h-16 rounded-[24px] flex items-center justify-center mb-8 transform group-hover:scale-110 transition-transform", item.color)}>
+                    {item.icon}
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic mb-4">{item.title}</h3>
+                  <p className="text-slate-400 font-bold text-sm leading-relaxed">{item.desc}</p>
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         )}

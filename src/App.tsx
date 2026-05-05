@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import React from 'react';
-import { User, MaintenanceRecord, MachineReport, Machine } from './types';
+import { User, MaintenanceRecord, MachineReport, Machine, Notification } from './types';
 import { INITIAL_USERS } from './constants';
 import Splash from './components/Splash';
 import Login from './components/Login';
@@ -75,6 +75,7 @@ export default function App() {
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [reports, setReports] = useState<MachineReport[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // Sync with Firestore
   useEffect(() => {
@@ -114,6 +115,20 @@ export default function App() {
       }
     );
 
+    // Real-time notifications sync
+    const qNotifications = query(collection(db, 'notifications'));
+    const unsubscribeNotifications = onSnapshot(qNotifications,
+      (snapshot) => {
+        const docs = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Notification));
+        // Sort in frontend to avoid index-related permission errors
+        docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setNotifications(docs);
+      },
+      (error) => {
+        console.error("Notifications sync error", error);
+      }
+    );
+
     // Sync session user
     const savedUser = sessionStorage.getItem('singer_current_user');
     if (savedUser) {
@@ -135,6 +150,7 @@ export default function App() {
       unsubscribeRecords();
       unsubscribeReports();
       unsubscribeMachines();
+      unsubscribeNotifications();
     };
   }, []);
 
@@ -153,8 +169,35 @@ export default function App() {
     try {
       const { id, ...data } = newReport;
       await setDoc(doc(db, 'machine_reports', id), data);
+
+      // Create notification
+      const notifId = doc(collection(db, 'notifications')).id;
+      const cleanMachineName = newReport.machineName.replace(/<br\s*\/?>/gi, ' ');
+      await setDoc(doc(db, 'notifications', notifId), {
+        title: `${newReport.department} ${newReport.workType} Reported`,
+        message: `${cleanMachineName} in ${newReport.department} requires ${newReport.workType.toLowerCase()} attention.`,
+        type: newReport.workType,
+        department: newReport.department,
+        machineId: newReport.machineId,
+        machineName: cleanMachineName,
+        createdAt: new Date().toISOString(),
+        readBy: []
+      });
     } catch (error) {
       handleFirestoreError(error, 'create', `machine_reports/${newReport.id}`);
+    }
+  };
+
+  const markNotificationAsRead = async (id: string, userId: string) => {
+    try {
+      const notif = notifications.find(n => n.id === id);
+      if (notif && !notif.readBy.includes(userId)) {
+        await setDoc(doc(db, 'notifications', id), {
+          readBy: [...notif.readBy, userId]
+        }, { merge: true });
+      }
+    } catch (error) {
+      console.error("Mark notification read error", error);
     }
   };
 
@@ -252,9 +295,12 @@ export default function App() {
           <SupervisorDashboard 
             records={records} 
             reports={reports}
+            machines={machines}
             onUpdateReport={updateReport}
             onUpdateRecord={updateRecord}
             onLogout={handleLogout} 
+            notifications={notifications}
+            onMarkNotificationAsRead={markNotificationAsRead}
           />
         );
       case 'maintainer':
@@ -264,6 +310,10 @@ export default function App() {
             onSave={addRecord} 
             onLogout={handleLogout} 
             machines={machines}
+            reports={reports}
+            onUpdateReport={updateReport}
+            notifications={notifications}
+            onMarkNotificationAsRead={markNotificationAsRead}
           />
         );
       default:

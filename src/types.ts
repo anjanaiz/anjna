@@ -42,6 +42,18 @@ export interface MachineReport {
   machineName: string;
   workType: WorkType;
   description: string;
-  status: 'pending' | 'addressed';
+  status: 'pending' | 'in-progress' | 'addressed';
   createdAt: string; // ISO string
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: WorkType | 'System';
+  department: Department;
+  machineId: string;
+  machineName: string;
+  createdAt: string;
+  readBy: string[]; // ids of users who have read it
 }

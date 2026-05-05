@@ -46,6 +46,22 @@
         "image": { "type": "string" }
       },
       "required": ["name", "department"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Alert for supervisors and maintainers",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "enum": ["Repair", "Service", "Break Down", "System"] },
+        "department": { "enum": ["Agro", "Modular", "Solid", "Sofa", "Other"] },
+        "machineId": { "type": "string" },
+        "machineName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "readBy": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["title", "message", "type", "department", "machineId", "createdAt", "readBy"]
     }
   },
   "firestore": {
@@ -60,6 +76,10 @@
     "/machines/{machineId}": {
       "schema": "Machine",
       "description": "Inventory of industrial machines"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Alerts for operational staff"
     }
   }
 }

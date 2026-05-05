@@ -37,7 +37,7 @@ service cloud.firestore {
         && data.machineName is string && data.machineName.size() <= 200
         && data.workType in ['Repair', 'Service', 'Break Down']
         && data.description is string && data.description.size() <= 6000
-        && data.status in ['pending', 'addressed']
+        && data.status in ['pending', 'in-progress', 'addressed']
         && data.createdAt is string;
     }
 
@@ -58,7 +58,7 @@ service cloud.firestore {
       allow create: if isValidId(reportId) && isValidReport(request.resource.data);
       allow update: if isValidId(reportId) && (
         request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'description'])
-        && (!('status' in request.resource.data) || request.resource.data.status in ['pending', 'addressed'])
+        && (!('status' in request.resource.data) || request.resource.data.status in ['pending', 'in-progress', 'addressed'])
         && (!('description' in request.resource.data) || (request.resource.data.description is string && request.resource.data.description.size() <= 6000))
       );
       allow delete: if true;
@@ -69,9 +69,32 @@ service cloud.firestore {
              && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other'];
     }
 
+    function isValidNotification(data) {
+      return data.keys().hasAll(['title', 'message', 'type', 'department', 'machineId', 'machineName', 'createdAt', 'readBy'])
+        && data.keys().size() == 8
+        && data.title is string && data.title.size() <= 200
+        && data.message is string && data.message.size() <= 1000
+        && data.type in ['Repair', 'Service', 'Break Down', 'System']
+        && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other']
+        && data.machineId is string && data.machineId.size() <= 128
+        && data.machineName is string && data.machineName.size() <= 200
+        && data.createdAt is string
+        && data.readBy is list && data.readBy.size() <= 100;
+    }
+
     match /machines/{machineId} {
       allow read: if true;
       allow write: if isValidId(machineId) && isValidMachine(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if true;
+      allow create: if isValidId(notificationId) && isValidNotification(request.resource.data);
+      allow update: if isValidId(notificationId) && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy'])
+        && request.resource.data.readBy is list
+      );
       allow delete: if true;
     }
   }

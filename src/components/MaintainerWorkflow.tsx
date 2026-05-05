@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { User, MaintenanceRecord, Department, Machine, WorkType, TimeType } from '../types';
+import { useState, useEffect, useMemo } from 'react';
+import { User, MaintenanceRecord, Department, Machine, WorkType, TimeType, MachineReport, Notification } from '../types';
 import { DEPARTMENTS } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -31,8 +31,27 @@ import { cn, formatTime } from '../lib/utils';
 import { format } from 'date-fns';
 import { translateToEnglish } from '../services/geminiService';
 import AnalogTimePicker from './AnalogTimePicker';
+import NotificationTray from './NotificationTray';
 
-export default function MaintainerWorkflow({ user, onSave, onLogout, machines }: { user: User, onSave: (r: MaintenanceRecord) => void, onLogout: () => void, machines: Machine[] }) {
+export default function MaintainerWorkflow({ 
+  user, 
+  onSave, 
+  onLogout, 
+  machines,
+  reports = [],
+  onUpdateReport,
+  notifications = [],
+  onMarkNotificationAsRead
+}: { 
+  user: User, 
+  onSave: (r: MaintenanceRecord) => void, 
+  onLogout: () => void, 
+  machines: Machine[],
+  reports?: MachineReport[],
+  onUpdateReport?: (id: string, updates: Partial<MachineReport>) => Promise<void>,
+  notifications?: Notification[],
+  onMarkNotificationAsRead: (id: string, userId: string) => Promise<void>
+}) {
   const [step, setStep] = useState(1);
   const [department, setDepartment] = useState<Department | null>(null);
   const [machine, setMachine] = useState<Machine | null>(null);
@@ -48,6 +67,16 @@ export default function MaintainerWorkflow({ user, onSave, onLogout, machines }:
   
   const machinesInDept = machines.filter(m => m.department === department);
 
+  const pendingReportForMachine = useMemo(() => {
+    if (!machine) return null;
+    return reports.find(r => r.machineId === machine.id && r.status === 'pending');
+  }, [machine, reports]);
+
+  const activeReport = useMemo(() => {
+    if (!machine) return null;
+    return reports.find(r => r.machineId === machine.id && r.status === 'in-progress');
+  }, [machine, reports]);
+
   const calculateDuration = (start: string, finish: string) => {
     if (!start || !finish) return 0;
     const s = new Date(start).getTime();
@@ -55,9 +84,15 @@ export default function MaintainerWorkflow({ user, onSave, onLogout, machines }:
     return Math.max(0, Math.floor((f - s) / (1000 * 60)));
   };
 
-  const handleStartNow = () => {
-    setStartTime(new Date().toISOString());
+  const handleStartNow = async () => {
+    const now = new Date().toISOString();
+    setStartTime(now);
     setIsTimerRunning(true);
+
+    // If there is a pending report, set it to in-progress
+    if (pendingReportForMachine && onUpdateReport) {
+      await onUpdateReport(pendingReportForMachine.id, { status: 'in-progress' });
+    }
   };
 
   const handleFinishNow = () => {
@@ -65,7 +100,7 @@ export default function MaintainerWorkflow({ user, onSave, onLogout, machines }:
     setIsTimerRunning(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!department || !machine || !workType || !timeType || !startTime || !finishTime) {
       alert("Please complete all fields before saving.");
       return;
@@ -89,6 +124,13 @@ export default function MaintainerWorkflow({ user, onSave, onLogout, machines }:
     };
 
     onSave(record);
+
+    // Finalize report if one was active
+    const reportToClose = activeReport || pendingReportForMachine;
+    if (reportToClose && onUpdateReport) {
+      await onUpdateReport(reportToClose.id, { status: 'addressed' });
+    }
+
     resetFlow();
   };
 
@@ -104,7 +146,7 @@ export default function MaintainerWorkflow({ user, onSave, onLogout, machines }:
     setIsTimerRunning(false);
   };
 
-  const handleServiceAction = () => {
+  const handleServiceAction = async () => {
     if (!department || !machine) return;
 
     const now = new Date().toISOString();
@@ -126,6 +168,12 @@ export default function MaintainerWorkflow({ user, onSave, onLogout, machines }:
     };
 
     onSave(record);
+
+    // If there is a pending report, set it to addressed
+    if (pendingReportForMachine && onUpdateReport) {
+      await onUpdateReport(pendingReportForMachine.id, { status: 'addressed' });
+    }
+
     resetFlow();
   };
 
@@ -162,8 +210,17 @@ export default function MaintainerWorkflow({ user, onSave, onLogout, machines }:
       };
 
       onSave(record);
+
+      // Finalize report
+      const reportToClose = activeReport || pendingReportForMachine;
+      if (reportToClose && onUpdateReport) {
+        await onUpdateReport(reportToClose.id, { status: 'addressed' });
+      }
+
       resetFlow();
     } catch (error) {
+       // ... error logic
+
       console.error("Transmission fail", error);
     } finally {
       setIsTranslating(false);
@@ -255,6 +312,10 @@ export default function MaintainerWorkflow({ user, onSave, onLogout, machines }:
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-y-auto bg-slate-50 relative min-h-0">
+        <div className="absolute top-6 right-6 flex items-center gap-4 z-[60]">
+          <NotificationTray notifications={notifications} user={user} onMarkRead={onMarkNotificationAsRead} />
+        </div>
+
         {/* Back Button (Floating) */}
         <button 
           onClick={step === 1 ? onLogout : () => setStep(step - 1)}
