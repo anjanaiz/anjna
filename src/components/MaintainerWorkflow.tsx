@@ -41,7 +41,8 @@ export default function MaintainerWorkflow({
   reports = [],
   onUpdateReport,
   notifications = [],
-  onMarkNotificationAsRead
+  onMarkNotificationAsRead,
+  onDeleteNotification
 }: { 
   user: User, 
   onSave: (r: MaintenanceRecord) => void, 
@@ -50,7 +51,8 @@ export default function MaintainerWorkflow({
   reports?: MachineReport[],
   onUpdateReport?: (id: string, updates: Partial<MachineReport>) => Promise<void>,
   notifications?: Notification[],
-  onMarkNotificationAsRead: (id: string, userId: string) => Promise<void>
+  onMarkNotificationAsRead: (id: string, userId: string) => Promise<void>,
+  onDeleteNotification?: (id: string) => Promise<void>
 }) {
   const [step, setStep] = useState(1);
   const [department, setDepartment] = useState<Department | null>(null);
@@ -313,7 +315,12 @@ export default function MaintainerWorkflow({
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-y-auto bg-slate-50 relative min-h-0">
         <div className="absolute top-6 right-6 flex items-center gap-4 z-[60]">
-          <NotificationTray notifications={notifications} user={user} onMarkRead={onMarkNotificationAsRead} />
+          <NotificationTray 
+            notifications={notifications} 
+            user={user} 
+            onMarkRead={onMarkNotificationAsRead} 
+            onDelete={onDeleteNotification}
+          />
         </div>
 
         {/* Back Button (Floating) */}

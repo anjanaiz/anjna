@@ -256,6 +256,14 @@ export default function App() {
     }
   };
 
+  const deleteNotification = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'notifications', id));
+    } catch (error) {
+      console.error("Delete notification error", error);
+    }
+  };
+
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     sessionStorage.setItem('singer_current_user', JSON.stringify(user));
@@ -325,6 +333,7 @@ export default function App() {
             onLogout={handleLogout} 
             notifications={notifications}
             onMarkNotificationAsRead={markNotificationAsRead}
+            onDeleteNotification={deleteNotification}
           />
         );
       case 'maintainer':
@@ -338,6 +347,7 @@ export default function App() {
             onUpdateReport={updateReport}
             notifications={notifications}
             onMarkNotificationAsRead={markNotificationAsRead}
+            onDeleteNotification={deleteNotification}
           />
         );
       default:

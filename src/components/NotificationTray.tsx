@@ -9,11 +9,12 @@ interface NotificationTrayProps {
   notifications: Notification[];
   user: User;
   onMarkRead: (id: string, userId: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
-export default function NotificationTray({ notifications, user, onMarkRead }: NotificationTrayProps) {
+export default function NotificationTray({ notifications, user, onMarkRead, onDelete }: NotificationTrayProps) {
   const [isOpen, setIsOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.readBy.includes(user.id)).length;
   const prevUnreadCount = useRef(unreadCount);
@@ -97,54 +98,81 @@ export default function NotificationTray({ notifications, user, onMarkRead }: No
                   </div>
                 ) : (
                   <div className="divide-y-2 divide-slate-50">
-                    {notifications.map((notif) => {
-                      const isRead = notif.readBy.includes(user.id);
-                      return (
-                        <motion.div 
-                          key={notif.id}
-                          className={cn(
-                            "p-5 transition-colors cursor-pointer group relative",
-                            isRead ? "opacity-60 grayscale-[0.5]" : "bg-white hover:bg-slate-50"
-                          )}
-                          onClick={() => {
-                            if (!isRead) onMarkRead(notif.id, user.id);
-                          }}
-                        >
-                          {!isRead && (
-                            <div className="absolute left-0 inset-y-0 w-1 bg-singer-red" />
-                          )}
-                          
-                          <div className="flex gap-4">
-                            <div className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                              notif.type === 'Break Down' ? "bg-red-50 text-red-600" :
-                              notif.type === 'Service' ? "bg-blue-50 text-blue-600" :
-                              notif.type === 'Repair' ? "bg-amber-50 text-amber-600" : "bg-slate-50 text-slate-600"
-                            )}>
-                              {notif.type === 'Break Down' && <AlertTriangle size={18} />}
-                              {notif.type === 'Service' && <CheckCircle2 size={18} />}
-                              {notif.type === 'Repair' && <Calendar size={18} />}
-                              {notif.type === 'System' && <Info size={18} />}
+                    <AnimatePresence mode="popLayout">
+                      {notifications.map((notif) => {
+                        const isRead = notif.readBy.includes(user.id);
+                        return (
+                          <motion.div 
+                            key={notif.id}
+                            layout
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, x: 100 }}
+                            drag="x"
+                            dragConstraints={{ left: -100, right: 100 }}
+                            onDragEnd={(_, info) => {
+                              // If swipe right > 100, mark as read
+                              if (info.offset.x > 100 && !isRead) {
+                                onMarkRead(notif.id, user.id);
+                              }
+                              // If swipe left < -100, delete (if onDelete exists)
+                              if (info.offset.x < -100 && onDelete) {
+                                onDelete(notif.id);
+                              }
+                            }}
+                            whileDrag={{ scale: 1.02, zIndex: 1 }}
+                            className={cn(
+                              "p-5 transition-colors cursor-grab active:cursor-grabbing group relative overflow-hidden",
+                              isRead ? "opacity-60 grayscale-[0.5]" : "bg-white hover:bg-slate-50"
+                            )}
+                            onClick={() => {
+                              if (!isRead) onMarkRead(notif.id, user.id);
+                            }}
+                          >
+                            {/* Swipe Backgrounds */}
+                            <div className="absolute inset-y-0 -left-full w-full bg-green-500 flex items-center justify-end px-12 text-white font-black text-xs uppercase tracking-widest z-0">
+                              Mark Read
+                            </div>
+                            <div className="absolute inset-y-0 -right-full w-full bg-red-600 flex items-center justify-start px-12 text-white font-black text-xs uppercase tracking-widest z-0">
+                              Dismiss
                             </div>
 
-                            <div className="space-y-1">
-                              <h4 className={cn(
-                                "text-xs font-black uppercase tracking-tighter",
-                                notif.type !== 'System' ? "text-singer-red" : "text-slate-900"
+                            <div className="relative z-10 bg-inherit flex gap-4">
+                              {!isRead && (
+                                <div className="absolute -left-5 inset-y-0 w-1 bg-singer-red" />
+                              )}
+                              
+                              <div className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                                notif.type === 'Break Down' ? "bg-red-50 text-red-600" :
+                                notif.type === 'Service' ? "bg-blue-50 text-blue-600" :
+                                notif.type === 'Repair' ? "bg-amber-50 text-amber-600" : "bg-slate-50 text-slate-600"
                               )}>
-                                {notif.title}
-                              </h4>
-                              <p className="text-[11px] font-normal text-slate-500 leading-relaxed uppercase tracking-tight">
-                                <span className="font-bold underline decoration-slate-200 decoration-1 underline-offset-2">{notif.machineName}</span> in <span className="font-bold">{notif.department}</span> requires {notif.type.toLowerCase()} attention.
-                              </p>
-                              <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic pt-1">
-                                {formatDistanceToNow(new Date(notif.createdAt))} ago
-                              </p>
+                                {notif.type === 'Break Down' && <AlertTriangle size={18} />}
+                                {notif.type === 'Service' && <CheckCircle2 size={18} />}
+                                {notif.type === 'Repair' && <Calendar size={18} />}
+                                {notif.type === 'System' && <Info size={18} />}
+                              </div>
+
+                              <div className="space-y-1">
+                                <h4 className={cn(
+                                  "text-xs font-black uppercase tracking-tighter",
+                                  notif.type !== 'System' ? "text-singer-red" : "text-slate-900"
+                                )}>
+                                  {notif.title}
+                                </h4>
+                                <p className="text-[11px] font-normal text-slate-500 leading-relaxed uppercase tracking-tight">
+                                  <span className="font-bold underline decoration-slate-200 decoration-1 underline-offset-2">{notif.machineName}</span> in <span className="font-bold">{notif.department}</span> requires {notif.type.toLowerCase()} attention.
+                                </p>
+                                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic pt-1">
+                                  {formatDistanceToNow(new Date(notif.createdAt))} ago
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
                   </div>
                 )}
               </div>

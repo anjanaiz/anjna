@@ -24,7 +24,8 @@ export default function SupervisorDashboard({
   onDeleteRecord,
   onLogout,
   notifications = [],
-  onMarkNotificationAsRead
+  onMarkNotificationAsRead,
+  onDeleteNotification
 }: { 
   records: MaintenanceRecord[], 
   reports: MachineReport[],
@@ -35,7 +36,8 @@ export default function SupervisorDashboard({
   onDeleteRecord?: (id: string) => Promise<void>,
   onLogout: () => void,
   notifications?: Notification[],
-  onMarkNotificationAsRead: (id: string, userId: string) => Promise<void>
+  onMarkNotificationAsRead: (id: string, userId: string) => Promise<void>,
+  onDeleteNotification?: (id: string) => Promise<void>
 }) {
   const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'analysis' | 'map'>('pending');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -165,6 +167,7 @@ export default function SupervisorDashboard({
             notifications={notifications} 
             user={{ id: 'supervisor-1', name: 'Supervisor', role: 'Supervisor' }} 
             onMarkRead={onMarkNotificationAsRead} 
+            onDelete={onDeleteNotification}
           />
           <div className="flex bg-white p-1.5 rounded-2xl border-2 border-slate-900 shadow-lg overflow-x-auto no-scrollbar w-full sm:w-auto">
             <button
