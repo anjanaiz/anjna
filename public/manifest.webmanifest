@@ -16,16 +16,6 @@
       "src": "https://www.google.com/s2/favicons?domain=singer.lk&sz=128",
       "sizes": "128x128",
       "type": "image/png"
-    },
-    {
-      "src": "https://www.google.com/s2/favicons?domain=singer.lk&sz=192",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "https://www.google.com/s2/favicons?domain=singer.lk&sz=512",
-      "sizes": "512x512",
-      "type": "image/png"
     }
   ]
 }

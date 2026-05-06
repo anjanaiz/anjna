@@ -11,16 +11,16 @@ export default defineConfig(({mode}) => {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
     build: {
-      chunkSizeWarningLimit: 800,
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
+              // Group major libraries together to ensure internal consistency
               if (id.includes('firebase')) return 'vendor-firebase';
-              if (id.includes('lucide-react')) return 'vendor-icons';
-              if (id.includes('motion') || id.includes('framer-motion')) return 'vendor-animation';
               if (id.includes('recharts') || id.includes('d3')) return 'vendor-charts';
-              if (id.includes('react')) return 'vendor-react-core';
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              // Keep React and core UI logic in the main vendor chunk
               return 'vendor';
             }
           }
