@@ -3,7 +3,7 @@ import { Notification, User } from '../types';
 import { Bell, X, CheckCircle2, AlertTriangle, Calendar, Info } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '../lib/utils';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface NotificationTrayProps {
   notifications: Notification[];
@@ -11,9 +11,33 @@ interface NotificationTrayProps {
   onMarkRead: (id: string, userId: string) => void;
 }
 
+const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+
 export default function NotificationTray({ notifications, user, onMarkRead }: NotificationTrayProps) {
   const [isOpen, setIsOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.readBy.includes(user.id)).length;
+  const prevUnreadCount = useRef(unreadCount);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Implement App Badge API
+    if ('setAppBadge' in navigator) {
+      if (unreadCount > 0) {
+        (navigator as any).setAppBadge(unreadCount).catch((err: any) => console.error("Badge error:", err));
+      } else {
+        (navigator as any).clearAppBadge().catch((err: any) => console.error("Badge clear error:", err));
+      }
+    }
+
+    // Play sound if unread count increased
+    if (unreadCount > prevUnreadCount.current) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(NOTIFICATION_SOUND);
+      }
+      audioRef.current.play().catch(e => console.log("Audio play blocked by browser policy until user interact", e));
+    }
+    prevUnreadCount.current = unreadCount;
+  }, [unreadCount]);
 
   return (
     <div className="relative">
@@ -34,15 +58,19 @@ export default function NotificationTray({ notifications, user, onMarkRead }: No
           <>
             {/* Backdrop for mobile */}
             <div 
-              className="fixed inset-0 z-[60] sm:hidden"
+              className="fixed inset-0 z-[60] bg-slate-900/20 backdrop-blur-sm sm:bg-transparent sm:backdrop-blur-none"
               onClick={() => setIsOpen(false)}
             />
             
             <motion.div 
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute right-0 mt-4 w-[320px] sm:w-[400px] bg-white rounded-[32px] border-2 border-slate-900 shadow-2xl z-[70] overflow-hidden"
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className={cn(
+                "fixed sm:absolute z-[70] overflow-hidden",
+                "inset-x-4 top-20 bottom-10 sm:inset-auto sm:right-0 sm:top-auto sm:bottom-auto sm:mt-4",
+                "w-auto sm:w-[400px] bg-white rounded-[32px] border-2 border-slate-900 shadow-2xl flex flex-col"
+              )}
             >
               <div className="p-6 border-b-2 border-slate-100 flex items-center justify-between bg-slate-50">
                 <div>
@@ -57,7 +85,7 @@ export default function NotificationTray({ notifications, user, onMarkRead }: No
                 </button>
               </div>
 
-              <div className="max-h-[450px] overflow-y-auto scrollbar-hide">
+              <div className="flex-1 overflow-y-auto scrollbar-hide">
                 {notifications.length === 0 ? (
                   <div className="p-12 text-center">
                     <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4">
