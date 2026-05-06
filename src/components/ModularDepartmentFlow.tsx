@@ -42,7 +42,12 @@ export default function ModularDepartmentFlow({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
-  const filteredMachines = machines.filter(m => m.department === departmentName);
+  const filteredMachines = useMemo(() => 
+    machines
+      .filter(m => m.department === departmentName)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    [machines, departmentName]
+  );
 
   const pendingReportsInDept = useMemo(() => 
     reports.filter(r => r.department === departmentName && r.status === 'pending'),
@@ -194,24 +199,24 @@ export default function ModularDepartmentFlow({
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+              className="flex flex-wrap justify-center gap-8"
             >
               {filteredMachines.map((m, idx) => (
                 <button
                   key={m.id}
                   onClick={() => handleMachineSelect(m)}
-                  className="group bg-white border-2 border-slate-200 rounded-[28px] p-6 text-left hover:border-slate-900 hover:shadow-xl transition-all relative overflow-hidden"
+                  className="group bg-white border-2 border-slate-100 rounded-[40px] p-10 text-center hover:border-singer-red hover:shadow-2xl transition-all relative overflow-hidden w-full sm:w-[320px]"
                 >
-                  <div className="w-32 h-32 bg-slate-50 text-slate-400 rounded-[32px] flex items-center justify-center mb-8 group-hover:bg-singer-red group-hover:text-white transition-all overflow-hidden ring-8 ring-slate-50 group-hover:ring-singer-red/10 shadow-inner">
+                  <div className="w-48 h-48 bg-slate-50 text-slate-300 rounded-[48px] flex items-center justify-center mb-10 mx-auto group-hover:bg-singer-red group-hover:text-white transition-all overflow-hidden ring-[12px] ring-slate-50 group-hover:ring-singer-red/10 shadow-inner">
                     {m.image ? (
                       <img src={m.image} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <Settings size={48} />
+                      <Settings size={64} />
                     )}
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sector ID: 0{idx + 1}</span>
-                    <h3 className="text-lg font-black text-slate-800 uppercase leading-tight tracking-tight group-hover:text-slate-900" dangerouslySetInnerHTML={{ __html: m.name }} />
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest leading-none block">Operational Unit 0{idx + 1}</span>
+                    <h3 className="text-2xl font-black text-slate-900 uppercase leading-tight tracking-tighter group-hover:text-singer-red transition-colors italic" dangerouslySetInnerHTML={{ __html: m.name }} />
                   </div>
                 </button>
               ))}
