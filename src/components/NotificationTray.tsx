@@ -56,9 +56,9 @@ export default function NotificationTray({ notifications, user, onMarkRead }: No
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop for mobile */}
+            {/* Global Backdrop */}
             <div 
-              className="fixed inset-0 z-[60] bg-slate-900/20 backdrop-blur-sm sm:bg-transparent sm:backdrop-blur-none"
+              className="fixed inset-0 z-[60] bg-slate-900/10 backdrop-blur-[2px]"
               onClick={() => setIsOpen(false)}
             />
             
@@ -67,9 +67,11 @@ export default function NotificationTray({ notifications, user, onMarkRead }: No
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
               className={cn(
-                "fixed sm:absolute z-[70] overflow-hidden",
-                "inset-x-4 top-20 bottom-10 sm:inset-auto sm:right-0 sm:top-auto sm:bottom-auto sm:mt-4",
-                "w-auto sm:w-[400px] bg-white rounded-[32px] border-2 border-slate-900 shadow-2xl flex flex-col"
+                "fixed z-[70] overflow-hidden flex flex-col",
+                "inset-x-4 top-1/2 -translate-y-1/2",
+                "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2",
+                "w-auto sm:w-[450px] max-h-[80vh] sm:max-h-[600px]",
+                "bg-white rounded-[32px] border-2 border-slate-900 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)]"
               )}
             >
               <div className="p-6 border-b-2 border-slate-100 flex items-center justify-between bg-slate-50">
