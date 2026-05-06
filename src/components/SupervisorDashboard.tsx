@@ -6,13 +6,15 @@ import {
   Calendar as CalendarIcon, Filter, Download, ChevronLeft, ChevronRight, 
   Bell, CheckCircle2, MessageSquareWarning, X, LogOut, Edit2, Save,
   BarChart3, Map as MapIcon, Settings, Activity, Layers, Users, Cpu, Maximize,
-  Trash2, AlertCircle
+  Trash2, AlertCircle, Loader2
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfYear, endOfYear, eachMonthOfInterval, isSameMonth } from 'date-fns';
 import { cn, formatDate, formatTime } from '../lib/utils';
+import { translateToEnglish } from '../services/geminiService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import ModularMap from './ModularMap';
 import NotificationTray from './NotificationTray';
+import AITranslationTool from './AITranslationTool';
 
 export default function SupervisorDashboard({ 
   records, 
@@ -50,6 +52,7 @@ export default function SupervisorDashboard({
   const [confirmingClearDate, setConfirmingClearDate] = useState(false);
   const [editDescription, setEditDescription] = useState('');
   const [showAddressed, setShowAddressed] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const [selectedAnalysisDept, setSelectedAnalysisDept] = useState<Department>(DEPARTMENTS[0]);
   const [selectedAnalysisMachineId, setSelectedAnalysisMachineId] = useState<string | null>(null);
@@ -402,13 +405,24 @@ export default function SupervisorDashboard({
                               {editingReportId === report.id ? (
                                 <button 
                                   onClick={async () => {
-                                    await onUpdateReport(report.id, { description: editDescription });
-                                    setEditingReportId(null);
+                                    setIsTranslating(true);
+                                    try {
+                                      const translated = await translateToEnglish(editDescription);
+                                      setEditDescription(translated);
+                                      await onUpdateReport(report.id, { description: translated });
+                                    } catch (error) {
+                                      console.error("Auto translation failed", error);
+                                      await onUpdateReport(report.id, { description: editDescription });
+                                    } finally {
+                                      setIsTranslating(false);
+                                      setEditingReportId(null);
+                                    }
                                   }}
-                                  className="w-12 h-12 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-2xl transition-all border-2 border-blue-100 hover:border-slate-900 shadow-sm"
+                                  disabled={isTranslating}
+                                  className="w-12 h-12 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-2xl transition-all border-2 border-blue-100 hover:border-slate-900 shadow-sm disabled:opacity-50"
                                   title="Save Changes"
                                 >
-                                  <Save size={24} />
+                                  {isTranslating ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
                                 </button>
                               ) : (
                                 <button 
@@ -462,12 +476,20 @@ export default function SupervisorDashboard({
                           
                           <div className="bg-slate-50 rounded-[24px] p-6 mb-6 relative z-10 border-2 border-transparent group-hover:border-slate-100 transition-colors">
                             {editingReportId === report.id ? (
-                              <textarea
-                                value={editDescription}
-                                onChange={(e) => setEditDescription(e.target.value)}
-                                className="w-full bg-white border-2 border-slate-200 rounded-xl p-4 font-sans text-base focus:border-singer-red outline-none min-h-[100px] resize-none"
-                                autoFocus
-                              />
+                              <div className="space-y-4">
+                                <div className="flex justify-end p-2 pb-0">
+                                  <AITranslationTool 
+                                    value={editDescription} 
+                                    onTranslated={(translated) => setEditDescription(translated)} 
+                                  />
+                                </div>
+                                <textarea
+                                  value={editDescription}
+                                  onChange={(e) => setEditDescription(e.target.value)}
+                                  className="w-full bg-white border-2 border-slate-200 rounded-xl p-4 font-sans text-base focus:border-singer-red outline-none min-h-[100px] resize-none"
+                                  autoFocus
+                                />
+                              </div>
                             ) : (
                               <p className="text-base font-bold text-slate-600 italic leading-relaxed">"{report.description}"</p>
                             )}
@@ -655,13 +677,24 @@ export default function SupervisorDashboard({
                                   {editingRecordId === record.id ? (
                                     <button 
                                       onClick={async () => {
-                                        await onUpdateRecord(record.id, { description: editDescription });
-                                        setEditingRecordId(null);
+                                        setIsTranslating(true);
+                                        try {
+                                          const translated = await translateToEnglish(editDescription);
+                                          setEditDescription(translated);
+                                          await onUpdateRecord(record.id, { description: translated });
+                                        } catch (error) {
+                                          console.error("Auto translation failed", error);
+                                          await onUpdateRecord(record.id, { description: editDescription });
+                                        } finally {
+                                          setIsTranslating(false);
+                                          setEditingRecordId(null);
+                                        }
                                       }}
-                                      className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all border-2 border-blue-100 hover:border-slate-900 shadow-sm"
+                                      disabled={isTranslating}
+                                      className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all border-2 border-blue-100 hover:border-slate-900 shadow-sm disabled:opacity-50"
                                       title="Save Changes"
                                     >
-                                      <Save size={20} />
+                                      {isTranslating ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
                                     </button>
                                   ) : (
                                     <button 
@@ -707,12 +740,20 @@ export default function SupervisorDashboard({
                               <h3 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tighter uppercase group-hover:text-singer-red transition-colors italic leading-tight" dangerouslySetInnerHTML={{ __html: record.machineName || 'Unknown Machine' }} />
                               <div className="bg-slate-50 rounded-[20px] p-6 relative z-10 border-2 border-transparent group-hover:border-slate-100 transition-colors">
                                 {editingRecordId === record.id ? (
-                                  <textarea
-                                    value={editDescription}
-                                    onChange={(e) => setEditDescription(e.target.value)}
-                                    className="w-full bg-white border-2 border-slate-200 rounded-xl p-4 font-sans text-base focus:border-singer-red outline-none min-h-[100px] resize-none"
-                                    autoFocus
-                                  />
+                                  <div className="space-y-4">
+                                    <div className="flex justify-end p-2 pb-0">
+                                      <AITranslationTool 
+                                        value={editDescription} 
+                                        onTranslated={(translated) => setEditDescription(translated)} 
+                                      />
+                                    </div>
+                                    <textarea
+                                      value={editDescription}
+                                      onChange={(e) => setEditDescription(e.target.value)}
+                                      className="w-full bg-white border-2 border-slate-200 rounded-xl p-4 font-sans text-base focus:border-singer-red outline-none min-h-[100px] resize-none"
+                                      autoFocus
+                                    />
+                                  </div>
                                 ) : (
                                   <p className="text-slate-500 font-medium text-base sm:text-lg leading-relaxed border-l-2 border-slate-100 pl-4 sm:pl-6 italic">"{record.description}"</p>
                                 )}

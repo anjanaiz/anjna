@@ -32,6 +32,7 @@ import { format } from 'date-fns';
 import { translateToEnglish } from '../services/geminiService';
 import AnalogTimePicker from './AnalogTimePicker';
 import NotificationTray from './NotificationTray';
+import AITranslationTool from './AITranslationTool';
 
 export default function MaintainerWorkflow({ 
   user, 
@@ -733,6 +734,12 @@ export default function MaintainerWorkflow({
                 
                 <div className="bg-white p-2 rounded-[48px] border-4 border-slate-50 shadow-2xl relative">
                   <div className="absolute top-8 left-10 p-2 bg-slate-100 rounded text-slate-300"><ClipboardList size={20} /></div>
+                  <div className="absolute top-8 right-10 z-10">
+                    <AITranslationTool 
+                      value={description} 
+                      onTranslated={(translated) => setDescription(translated)} 
+                    />
+                  </div>
                   <textarea 
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}

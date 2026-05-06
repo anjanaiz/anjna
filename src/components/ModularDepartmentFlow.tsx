@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Machine, WorkType, MachineReport } from '../types';
 import SingerLogo from './SingerLogo';
+import AITranslationTool from './AITranslationTool';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -19,6 +20,7 @@ import {
   Zap
 } from 'lucide-react';
 import { cn, formatTime } from '../lib/utils';
+import { translateToEnglish } from '../services/geminiService';
 
 export default function ModularDepartmentFlow({ 
   onBack, 
@@ -38,6 +40,7 @@ export default function ModularDepartmentFlow({
   const [selectedWorkType, setSelectedWorkType] = useState<WorkType | null>(null);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const filteredMachines = machines.filter(m => m.department === departmentName);
 
@@ -98,7 +101,17 @@ export default function ModularDepartmentFlow({
     e.preventDefault();
     if (!selectedMachine || !selectedWorkType || !description.trim()) return;
 
-    await triggerReport(selectedWorkType, description.trim());
+    setIsTranslating(true);
+    try {
+      const translated = await translateToEnglish(description);
+      setDescription(translated);
+      await triggerReport(selectedWorkType, translated);
+    } catch (error) {
+      console.error("Auto translation failed, submitting original", error);
+      await triggerReport(selectedWorkType, description.trim());
+    } finally {
+      setIsTranslating(false);
+    }
   };
 
   return (
@@ -272,7 +285,13 @@ export default function ModularDepartmentFlow({
 
                 <div className="p-8 space-y-8">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-4">Incident Log Narrative</label>
+                    <div className="flex items-center justify-between px-4">
+                      <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Incident Log Narrative</label>
+                      <AITranslationTool 
+                        value={description} 
+                        onTranslated={(translated) => setDescription(translated)} 
+                      />
+                    </div>
                     <textarea 
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -284,10 +303,15 @@ export default function ModularDepartmentFlow({
 
                   <button 
                     type="submit"
-                    disabled={isSubmitting || !description.trim()}
+                    disabled={isSubmitting || isTranslating || !description.trim()}
                     className="w-full bg-singer-red text-white py-6 rounded-[24px] font-black text-xl italic tracking-tighter flex items-center justify-center gap-3 hover:bg-slate-900 transition-all shadow-[0px_20px_40px_rgba(211,47,47,0.2)] disabled:opacity-50 disabled:grayscale group"
                   >
-                    {isSubmitting ? (
+                    {isTranslating ? (
+                      <>
+                        <Loader2 size={24} className="animate-spin" />
+                        TRANSLATING TO ENGLISH...
+                      </>
+                    ) : isSubmitting ? (
                       <>
                         <Loader2 size={24} className="animate-spin" />
                         UPLOADING LOG...
