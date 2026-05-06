@@ -14,6 +14,11 @@ import {
   Wrench,
   Stethoscope,
   LayoutGrid,
+  Layers,
+  Droplets,
+  TreeDeciduous,
+  Sofa,
+  Wind,
   Zap,
   ClipboardList,
   Save,
@@ -230,6 +235,17 @@ export default function MaintainerWorkflow({
     }
   };
 
+  const getDeptIcon = (dept: string) => {
+    switch (dept) {
+      case 'Agro': return Droplets;
+      case 'Modular': return Layers;
+      case 'Solid': return TreeDeciduous;
+      case 'Sofa': return Sofa;
+      case 'Other': return Wind;
+      default: return LayoutGrid;
+    }
+  };
+
   const renderProgress = () => {
     const totalSteps = 5;
     return (
@@ -380,7 +396,10 @@ export default function MaintainerWorkflow({
                     >
                       <div className="absolute top-0 right-0 p-8 text-slate-50 text-6xl font-black opacity-0 group-hover:opacity-100 transition-opacity select-none">{dept.charAt(0)}</div>
                       <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all shadow-inner relative z-10">
-                        <LayoutGrid size={32} />
+                        {(() => {
+                          const Icon = getDeptIcon(dept);
+                          return <Icon size={32} />;
+                        })()}
                       </div>
                       <div className="relative z-10">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block group-hover:text-singer-red transition-colors">Sector ID: 00{DEPARTMENTS.indexOf(dept) + 1}</span>
