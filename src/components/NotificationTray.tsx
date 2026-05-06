@@ -21,15 +21,6 @@ export default function NotificationTray({ notifications, user, onMarkRead, onDe
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Implement App Badge API
-    if ('setAppBadge' in navigator) {
-      if (unreadCount > 0) {
-        (navigator as any).setAppBadge(unreadCount).catch((err: any) => console.error("Badge error:", err));
-      } else {
-        (navigator as any).clearAppBadge().catch((err: any) => console.error("Badge clear error:", err));
-      }
-    }
-
     // Play sound if unread count increased
     if (unreadCount > prevUnreadCount.current) {
       if (!audioRef.current) {

@@ -77,7 +77,7 @@ export default function App() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  // Sync with Firestore
+  // Sync with Firestore (Records, Reports, Machines)
   useEffect(() => {
     // Real-time records sync
     const qRecords = query(collection(db, 'records'), orderBy('createdAt', 'desc'));
@@ -115,21 +115,44 @@ export default function App() {
       }
     );
 
-    // Real-time notifications sync
+    return () => {
+      unsubscribeRecords();
+      unsubscribeReports();
+      unsubscribeMachines();
+    };
+  }, []);
+
+  // Real-time notifications sync & Badge Update
+  useEffect(() => {
+    if (!currentUser) return;
+
     const qNotifications = query(collection(db, 'notifications'));
     const unsubscribeNotifications = onSnapshot(qNotifications,
       (snapshot) => {
         const docs = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Notification));
-        // Sort in frontend to avoid index-related permission errors
         docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setNotifications(docs);
+
+        // Update App Badge
+        const unreadCount = docs.filter(n => !n.readBy.includes(currentUser.id)).length;
+        if ('setAppBadge' in navigator) {
+          if (unreadCount > 0) {
+            (navigator as any).setAppBadge(unreadCount).catch((err: any) => console.error("Badge error:", err));
+          } else {
+            (navigator as any).clearAppBadge().catch((err: any) => console.error("Badge clear error:", err));
+          }
+        }
       },
       (error) => {
-        console.error("Notifications sync error", error);
+        handleFirestoreError(error, 'list', 'notifications');
       }
     );
 
-    // Sync session user
+    return () => unsubscribeNotifications();
+  }, [currentUser]);
+
+  // Sync session user on mount
+  useEffect(() => {
     const savedUser = sessionStorage.getItem('singer_current_user');
     if (savedUser) {
       try {
@@ -145,13 +168,6 @@ export default function App() {
         sessionStorage.removeItem('singer_current_user');
       }
     }
-
-    return () => {
-      unsubscribeRecords();
-      unsubscribeReports();
-      unsubscribeMachines();
-      unsubscribeNotifications();
-    };
   }, []);
 
   // Save records to Firestore
