@@ -328,6 +328,7 @@ export default function App() {
               return (
                 <DepartmentSelection 
                   machines={machines}
+                  reports={reports}
                   onBack={() => setCurrentPage('splash')}
                   onSelect={(deptId) => {
                     if (deptId === 'maintenance') {
@@ -345,6 +346,7 @@ export default function App() {
                   onBack={() => setCurrentPage('department-selection')} 
                   onReport={addReport}
                   machines={machines}
+                  reports={reports}
                   departmentName={selectedDept}
                 />
               );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Machine, WorkType, MachineReport } from '../types';
 import SingerLogo from './SingerLogo';
@@ -13,19 +13,24 @@ import {
   ClipboardPen,
   Send,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Zap
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, formatTime } from '../lib/utils';
 
 export default function ModularDepartmentFlow({ 
   onBack, 
   onReport,
   machines,
+  reports = [],
   departmentName = 'Modular'
 }: { 
   onBack: () => void, 
   onReport: (report: MachineReport) => Promise<void>,
   machines: Machine[],
+  reports?: MachineReport[],
   departmentName?: string
 }) {
   const [step, setStep] = useState<'machines' | 'work-types' | 'description'>('machines');
@@ -35,6 +40,11 @@ export default function ModularDepartmentFlow({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredMachines = machines.filter(m => m.department === departmentName);
+
+  const pendingReportsInDept = useMemo(() => 
+    reports.filter(r => r.department === departmentName && r.status === 'pending'),
+    [reports, departmentName]
+  );
 
   const workTypes: { type: WorkType; icon: any; color: string; desc: string }[] = [
     { type: 'Repair', icon: Hammer, color: 'bg-amber-500', desc: 'Fix physical damage or failure' },
@@ -92,8 +102,52 @@ export default function ModularDepartmentFlow({
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 min-h-0 overflow-y-auto">
-      <div className="max-w-6xl mx-auto w-full p-4 sm:p-8 flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col lg:flex-row bg-slate-50 min-h-0 overflow-hidden">
+      {/* Pending Alerts Sidebar (Left Side) */}
+      <aside className="w-full lg:w-80 bg-white border-r-2 border-slate-100 flex flex-col shrink-0 overflow-y-auto">
+        <div className="p-8 space-y-8">
+          <header>
+            <div className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-2 leading-none">Operational Status</div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic flex items-center gap-2">
+              <AlertCircle size={24} className="text-singer-red" />
+              Pending Alerts
+            </h2>
+          </header>
+
+          <div className="space-y-4">
+            {pendingReportsInDept.length > 0 ? (
+              pendingReportsInDept.map((report) => (
+                <div key={report.id} className="p-6 bg-slate-50 rounded-2xl border-2 border-transparent hover:border-singer-red transition-all group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-5 text-singer-red group-hover:scale-150 transition-transform">
+                    <Zap size={32} />
+                  </div>
+                  <div className="relative z-10 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-black uppercase text-singer-red bg-singer-red/5 px-2 py-0.5 rounded-full border border-singer-red/10">
+                        {report.workType}
+                      </span>
+                      <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
+                        <Clock size={10} /> {formatTime(report.createdAt)}
+                      </span>
+                    </div>
+                    <div className="text-sm font-black text-slate-900 uppercase tracking-tight" dangerouslySetInnerHTML={{ __html: report.machineName.replace('<br>', ' ') }} />
+                    <p className="text-[10px] font-bold text-slate-400 italic leading-snug break-words">"{report.description}"</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-12 px-6 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
+                <CheckCircle2 className="mx-auto text-green-500 mb-2 opacity-50" size={32} />
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sector Clear</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Reporting Flow */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+        <div className="max-w-4xl mx-auto w-full p-4 sm:p-8 md:p-12 flex-1 flex flex-col">
         {/* Header - Centered Titles */}
         <header className="flex flex-col items-center mb-12 relative pt-8 sm:pt-0">
           <button 
@@ -252,5 +306,6 @@ export default function ModularDepartmentFlow({
         </AnimatePresence>
       </div>
     </div>
+  </div>
   );
 }

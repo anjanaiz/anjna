@@ -417,18 +417,27 @@ export default function MaintainerWorkflow({
                 </header>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {machinesInDept.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => { setMachine(m); setStep(3); }}
-                      className={cn(
-                        "group bg-white rounded-[40px] p-10 flex flex-col items-center transition-all duration-300 relative border-2",
-                        machine?.id === m.id 
-                          ? "border-singer-red shadow-[0_20px_50px_rgba(211,47,47,0.15)] scale-[1.02]" 
-                          : "border-transparent shadow-[0_15px_40px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-1 hover:border-slate-100"
-                      )}
-                    >
-                      {/* Image/Icon Area */}
+                  {machinesInDept.map((m) => {
+                    const machineReport = reports.find(r => r.machineId === m.id && r.status === 'pending');
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => { setMachine(m); setStep(3); }}
+                        className={cn(
+                          "group bg-white rounded-[40px] p-10 flex flex-col items-center transition-all duration-300 relative border-2",
+                          machine?.id === m.id 
+                            ? "border-singer-red shadow-[0_20px_50px_rgba(211,47,47,0.15)] scale-[1.02]" 
+                            : "border-transparent shadow-[0_15px_40px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-1 hover:border-slate-100"
+                        )}
+                      >
+                        {/* Status Badge */}
+                        {machineReport && (
+                          <div className="absolute top-6 left-6 z-20 flex items-center gap-2 bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-singer-red/20 animate-pulse">
+                            <AlertCircle size={10} /> {machineReport.workType}
+                          </div>
+                        )}
+
+                        {/* Image/Icon Area */}
                       <div className="relative w-full aspect-video flex items-center justify-center mb-8 bg-slate-50 rounded-[24px] overflow-hidden group-hover:bg-singer-red transition-colors shadow-inner">
                         {m.image ? (
                           <img 
@@ -461,7 +470,7 @@ export default function MaintainerWorkflow({
                         machine?.id === m.id ? "bg-singer-red scale-100" : "bg-slate-100 scale-50 opacity-0"
                       )} />
                     </button>
-                  ))}
+                  ); })}
                 </div>
               </motion.div>
             )}

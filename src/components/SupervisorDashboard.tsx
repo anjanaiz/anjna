@@ -6,7 +6,7 @@ import {
   Calendar as CalendarIcon, Filter, Download, ChevronLeft, ChevronRight, 
   Bell, CheckCircle2, MessageSquareWarning, X, LogOut, Edit2, Save,
   BarChart3, Map as MapIcon, Settings, Activity, Layers, Users, Cpu, Maximize,
-  Trash2
+  Trash2, AlertCircle
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfYear, endOfYear, eachMonthOfInterval, isSameMonth } from 'date-fns';
 import { cn, formatDate, formatTime } from '../lib/utils';
@@ -240,6 +240,44 @@ export default function SupervisorDashboard({
           >
             {/* Calendar & Filter Column */}
             <div className="lg:col-span-4 space-y-6 sm:space-y-8">
+              {/* Pending Activity Summary */}
+              <div className="bg-white p-8 rounded-[32px] border-2 border-slate-900 shadow-xl overflow-hidden relative group">
+                <div className="absolute top-0 right-0 p-8 text-slate-100/50 text-7xl font-black italic select-none">!</div>
+                <div className="relative z-10 space-y-6">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter italic flex items-center gap-2">
+                      <AlertCircle className="text-singer-red" size={20} />
+                      Pending Alerts
+                    </h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Live Operational Disruptions</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {DEPARTMENTS.map(dept => {
+                      const count = reports.filter(r => r.department === dept && r.status === 'pending').length;
+                      if (count === 0) return null;
+                      return (
+                        <div key={dept} className="flex items-center justify-between group/item">
+                          <span className="text-xs font-bold text-slate-600 uppercase tracking-tight group-hover/item:text-singer-red transition-colors">{dept} Sector</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-px w-8 bg-slate-100 group-hover/item:w-12 transition-all group-hover/item:bg-singer-red/20" />
+                            <span className="bg-singer-red text-white w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black shadow-lg shadow-singer-red/20">
+                              {count}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {reports.filter(r => r.status === 'pending').length === 0 && (
+                      <div className="py-4 text-center">
+                        <CheckCircle2 className="mx-auto text-green-500 mb-2" size={24} />
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No Active Alerts</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white rounded-[24px] sm:rounded-[32px] shadow-xl sm:shadow-2xl border-2 border-slate-100 overflow-hidden">
                 <div className="p-6 sm:p-8 bg-slate-900 text-white flex justify-between items-center border-b-4 border-singer-red">
                   <h2 className="font-black text-xl sm:text-2xl uppercase tracking-tighter italic">{format(currentMonth, 'MMMM yyyy')}</h2>
