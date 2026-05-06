@@ -3,22 +3,43 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import React from 'react';
 import { User, MaintenanceRecord, MachineReport, Machine, Notification } from './types';
 import { INITIAL_USERS } from './constants';
 import Splash from './components/Splash';
-import Login from './components/Login';
-import AdminDashboard from './components/AdminDashboard';
-import SupervisorDashboard from './components/SupervisorDashboard';
-import MaintainerWorkflow from './components/MaintainerWorkflow';
-import DepartmentSelection from './components/DepartmentSelection';
-import ModularDepartmentFlow from './components/ModularDepartmentFlow';
-import { LogOut } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
 import SingerLogo from './components/SingerLogo';
 import { db, logout } from './lib/firebase';
 import { collection, onSnapshot, query, orderBy, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { handleFirestoreError } from './lib/utils';
+
+// Lazy loaded components
+const Login = lazy(() => import('./components/Login'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const SupervisorDashboard = lazy(() => import('./components/SupervisorDashboard'));
+const MaintainerWorkflow = lazy(() => import('./components/MaintainerWorkflow'));
+const DepartmentSelection = lazy(() => import('./components/DepartmentSelection'));
+const ModularDepartmentFlow = lazy(() => import('./components/ModularDepartmentFlow'));
+
+// Loading Fallback
+function LoadingScreen() {
+  return (
+    <div className="flex-1 flex items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-4">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="text-singer-red"
+        >
+          <Loader2 size={40} />
+        </motion.div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Initializing Interface...</p>
+      </div>
+    </div>
+  );
+}
 
 // Global Error Boundary Component
 function ErrorBoundary({ children }: { children: React.ReactNode }) {
@@ -297,78 +318,84 @@ export default function App() {
   };
 
   const renderPage = () => {
-    switch (currentPage) {
-      case 'splash':
-        return <Splash onComplete={() => setCurrentPage('department-selection')} />;
-      case 'department-selection':
-        return (
-          <DepartmentSelection 
-            machines={machines}
-            onBack={() => setCurrentPage('splash')}
-            onSelect={(deptId) => {
-              if (deptId === 'maintenance') {
-                setCurrentPage('login');
-              } else {
-                setSelectedDept(deptId);
-                setCurrentPage('modular-dept');
-              }
-            }} 
-          />
-        );
-      case 'modular-dept':
-        return (
-          <ModularDepartmentFlow 
-            onBack={() => setCurrentPage('department-selection')} 
-            onReport={addReport}
-            machines={machines}
-            departmentName={selectedDept}
-          />
-        );
-      case 'login':
-        return <Login onLogin={handleLogin} onBack={() => setCurrentPage('department-selection')} />;
-      case 'admin':
-        return (
-          <AdminDashboard 
-            records={records} 
-            machines={machines}
-            onAddMachine={addMachine}
-            onDeleteMachine={deleteMachine}
-            onLogout={handleLogout} 
-          />
-        );
-      case 'supervisor':
-        return (
-          <SupervisorDashboard 
-            records={records} 
-            reports={reports}
-            machines={machines}
-            onUpdateReport={updateReport}
-            onDeleteReport={deleteReport}
-            onUpdateRecord={updateRecord}
-            onDeleteRecord={deleteRecord}
-            onLogout={handleLogout} 
-            notifications={notifications}
-            onMarkNotificationAsRead={markNotificationAsRead}
-            onDeleteNotification={deleteNotification}
-          />
-        );
-      case 'maintainer':
-        return (
-          <MaintainerWorkflow 
-            user={currentUser!} 
-            onSave={addRecord} 
-            onLogout={handleLogout} 
-            machines={machines}
-            reports={reports}
-            onUpdateReport={updateReport}
-            notifications={notifications}
-            onMarkNotificationAsRead={markNotificationAsRead}
-            onDeleteNotification={deleteNotification}
-          />
-        );
-      default:
-        return <div>Error: Page not found</div>;
-    }
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        {(() => {
+          switch (currentPage) {
+            case 'splash':
+              return <Splash onComplete={() => setCurrentPage('department-selection')} />;
+            case 'department-selection':
+              return (
+                <DepartmentSelection 
+                  machines={machines}
+                  onBack={() => setCurrentPage('splash')}
+                  onSelect={(deptId) => {
+                    if (deptId === 'maintenance') {
+                      setCurrentPage('login');
+                    } else {
+                      setSelectedDept(deptId);
+                      setCurrentPage('modular-dept');
+                    }
+                  }} 
+                />
+              );
+            case 'modular-dept':
+              return (
+                <ModularDepartmentFlow 
+                  onBack={() => setCurrentPage('department-selection')} 
+                  onReport={addReport}
+                  machines={machines}
+                  departmentName={selectedDept}
+                />
+              );
+            case 'login':
+              return <Login onLogin={handleLogin} onBack={() => setCurrentPage('department-selection')} />;
+            case 'admin':
+              return (
+                <AdminDashboard 
+                  records={records} 
+                  machines={machines}
+                  onAddMachine={addMachine}
+                  onDeleteMachine={deleteMachine}
+                  onLogout={handleLogout} 
+                />
+              );
+            case 'supervisor':
+              return (
+                <SupervisorDashboard 
+                  records={records} 
+                  reports={reports}
+                  machines={machines}
+                  onUpdateReport={updateReport}
+                  onDeleteReport={deleteReport}
+                  onUpdateRecord={updateRecord}
+                  onDeleteRecord={deleteRecord}
+                  onLogout={handleLogout} 
+                  notifications={notifications}
+                  onMarkNotificationAsRead={markNotificationAsRead}
+                  onDeleteNotification={deleteNotification}
+                />
+              );
+            case 'maintainer':
+              return (
+                <MaintainerWorkflow 
+                  user={currentUser!} 
+                  onSave={addRecord} 
+                  onLogout={handleLogout} 
+                  machines={machines}
+                  reports={reports}
+                  onUpdateReport={updateReport}
+                  notifications={notifications}
+                  onMarkNotificationAsRead={markNotificationAsRead}
+                  onDeleteNotification={deleteNotification}
+                />
+              );
+            default:
+              return <div>Error: Page not found</div>;
+          }
+        })()}
+      </Suspense>
+    );
   };
 
   return (
