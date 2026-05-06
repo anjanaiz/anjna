@@ -209,6 +209,28 @@ export default function App() {
     }
   };
 
+  const deleteReport = async (reportId: string) => {
+    console.log("Attempting to delete report:", reportId);
+    try {
+      await deleteDoc(doc(db, 'machine_reports', reportId));
+      console.log("Successfully deleted report:", reportId);
+    } catch (error) {
+      console.error("Delete report error", error);
+      handleFirestoreError(error, 'delete', `machine_reports/${reportId}`);
+    }
+  };
+
+  const deleteRecord = async (recordId: string) => {
+    console.log("Attempting to delete record:", recordId);
+    try {
+      await deleteDoc(doc(db, 'records', recordId));
+      console.log("Successfully deleted record:", recordId);
+    } catch (error) {
+      console.error("Delete record error", error);
+      handleFirestoreError(error, 'delete', `records/${recordId}`);
+    }
+  };
+
   const updateRecord = async (recordId: string, updates: Partial<MaintenanceRecord>) => {
     try {
       await setDoc(doc(db, 'records', recordId), updates, { merge: true });
@@ -230,7 +252,7 @@ export default function App() {
     try {
       await deleteDoc(doc(db, 'machines', machineId));
     } catch (error) {
-      console.error("Delete machine error", error);
+      handleFirestoreError(error, 'delete', `machines/${machineId}`);
     }
   };
 
@@ -297,7 +319,9 @@ export default function App() {
             reports={reports}
             machines={machines}
             onUpdateReport={updateReport}
+            onDeleteReport={deleteReport}
             onUpdateRecord={updateRecord}
+            onDeleteRecord={deleteRecord}
             onLogout={handleLogout} 
             notifications={notifications}
             onMarkNotificationAsRead={markNotificationAsRead}

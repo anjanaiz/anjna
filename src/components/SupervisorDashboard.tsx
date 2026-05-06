@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calendar as CalendarIcon, Filter, Download, ChevronLeft, ChevronRight, 
   Bell, CheckCircle2, MessageSquareWarning, X, LogOut, Edit2, Save,
-  BarChart3, Map as MapIcon, Settings, Activity, Layers, Users, Cpu, Maximize
+  BarChart3, Map as MapIcon, Settings, Activity, Layers, Users, Cpu, Maximize,
+  Trash2
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, startOfYear, endOfYear, eachMonthOfInterval, isSameMonth } from 'date-fns';
 import { cn, formatDate, formatTime } from '../lib/utils';
@@ -18,7 +19,9 @@ export default function SupervisorDashboard({
   reports = [], 
   machines = [],
   onUpdateReport,
+  onDeleteReport,
   onUpdateRecord,
+  onDeleteRecord,
   onLogout,
   notifications = [],
   onMarkNotificationAsRead
@@ -27,7 +30,9 @@ export default function SupervisorDashboard({
   reports: MachineReport[],
   machines: Machine[],
   onUpdateReport: (id: string, updates: Partial<MachineReport>) => Promise<void>,
+  onDeleteReport?: (id: string) => Promise<void>,
   onUpdateRecord: (id: string, updates: Partial<MaintenanceRecord>) => Promise<void>,
+  onDeleteRecord?: (id: string) => Promise<void>,
   onLogout: () => void,
   notifications?: Notification[],
   onMarkNotificationAsRead: (id: string, userId: string) => Promise<void>
@@ -38,7 +43,11 @@ export default function SupervisorDashboard({
   const [filterDept, setFilterDept] = useState<Department | 'All'>('All');
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [confirmingReportId, setConfirmingReportId] = useState<string | null>(null);
+  const [confirmingRecordId, setConfirmingRecordId] = useState<string | null>(null);
+  const [confirmingClearDate, setConfirmingClearDate] = useState(false);
   const [editDescription, setEditDescription] = useState('');
+  const [showAddressed, setShowAddressed] = useState(false);
 
   const [selectedAnalysisDept, setSelectedAnalysisDept] = useState<Department>(DEPARTMENTS[0]);
   const [selectedAnalysisMachineId, setSelectedAnalysisMachineId] = useState<string | null>(null);
@@ -99,7 +108,7 @@ export default function SupervisorDashboard({
   );
 
   const pendingReports = reports.filter(r => 
-    r.status === 'pending' &&
+    (showAddressed ? (r.status === 'pending' || r.status === 'addressed') : r.status === 'pending') &&
     (!selectedDate || isSameDay(new Date(r.createdAt), selectedDate)) &&
     (filterDept === 'All' || r.department === filterDept)
   );
@@ -276,6 +285,19 @@ export default function SupervisorDashboard({
                   <div className="p-2 bg-slate-50 rounded-lg text-slate-400"><Filter size={18} /></div>
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Division Filter</span>
                 </div>
+                
+                <div className="mb-6 p-4 bg-slate-50 rounded-2xl border-2 border-slate-100">
+                  <button 
+                    onClick={() => setShowAddressed(!showAddressed)}
+                    className={cn(
+                      "w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
+                      showAddressed ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-400"
+                    )}
+                  >
+                    {showAddressed ? "Hide Addressed" : "Show Addressed"}
+                  </button>
+                </div>
+
                 <div className="flex sm:grid sm:grid-cols-1 gap-2 pb-2 sm:pb-0 overflow-x-auto sm:overflow-x-visible no-scrollbar">
                   <button 
                     onClick={() => setFilterDept('All')}
@@ -366,6 +388,34 @@ export default function SupervisorDashboard({
                               >
                                 <CheckCircle2 size={24} className="group-hover/check:scale-110 transition-transform" />
                               </button>
+                              {onDeleteReport && (
+                                <button 
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (confirmingReportId === report.id) {
+                                      try {
+                                        await onDeleteReport(report.id);
+                                        setConfirmingReportId(null);
+                                      } catch (err) {
+                                        console.error("Failed to delete report:", err);
+                                      }
+                                    } else {
+                                      setConfirmingReportId(report.id);
+                                      // Reset after 3 seconds
+                                      setTimeout(() => setConfirmingReportId(null), 3000);
+                                    }
+                                  }}
+                                  className={cn(
+                                    "w-12 h-12 flex items-center justify-center rounded-2xl transition-all border-2 shadow-sm group/trash",
+                                    confirmingReportId === report.id 
+                                      ? "bg-red-600 text-white border-slate-900 scale-110" 
+                                      : "bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white hover:border-slate-900"
+                                  )}
+                                  title={confirmingReportId === report.id ? "Click Again to Delete" : "Delete Report"}
+                                >
+                                  <Trash2 size={20} className={cn("transition-transform", confirmingReportId === report.id ? "rotate-12 scale-110" : "group-hover/trash:scale-110")} />
+                                </button>
+                              )}
                             </div>
                           </div>
                           
@@ -502,18 +552,43 @@ export default function SupervisorDashboard({
                   animate={{ opacity: 1, x: 0 }}
                   className="space-y-6"
                 >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-l-4 border-singer-red pl-4 sm:pl-6 py-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-l-4 border-singer-red pl-4 sm:pl-6 py-2">
                     <div>
                       <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter uppercase italic">
                         {format(selectedDate, 'MMM do')}
                       </h2>
                       <p className="text-slate-400 font-bold uppercase text-[9px] sm:text-[10px] tracking-widest">{format(selectedDate, 'EEEE, yyyy')}</p>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">
-                        {dailyRecords.length} 
-                      </span>
-                      <span className="text-[10px] sm:text-xs font-black text-slate-300 uppercase tracking-widest leading-none">Events Logged</span>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">
+                          {dailyRecords.length} 
+                        </span>
+                        <span className="text-[10px] sm:text-xs font-black text-slate-300 uppercase tracking-widest leading-none">Events Logged</span>
+                      </div>
+                      {dailyRecords.length > 0 && onDeleteRecord && (
+                        <button 
+                          onClick={async () => {
+                            if (confirmingClearDate) {
+                              for (const record of dailyRecords) {
+                                await onDeleteRecord(record.id);
+                              }
+                              setConfirmingClearDate(false);
+                            } else {
+                              setConfirmingClearDate(true);
+                              setTimeout(() => setConfirmingClearDate(false), 3000);
+                            }
+                          }}
+                          className={cn(
+                            "px-4 py-2 border-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm",
+                            confirmingClearDate 
+                              ? "bg-red-600 text-white border-slate-900 scale-105" 
+                              : "bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white"
+                          )}
+                        >
+                          {confirmingClearDate ? "Confirm Wipe Out?" : "Clear Date"}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -557,6 +632,33 @@ export default function SupervisorDashboard({
                                       title="Edit Description"
                                     >
                                       <Edit2 size={20} />
+                                    </button>
+                                  )}
+                                  {onDeleteRecord && (
+                                    <button 
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (confirmingRecordId === record.id) {
+                                          try {
+                                            await onDeleteRecord(record.id);
+                                            setConfirmingRecordId(null);
+                                          } catch (err) {
+                                            console.error("Failed to delete record:", err);
+                                          }
+                                        } else {
+                                          setConfirmingRecordId(record.id);
+                                          setTimeout(() => setConfirmingRecordId(null), 3000);
+                                        }
+                                      }}
+                                      className={cn(
+                                        "w-10 h-10 flex items-center justify-center rounded-xl transition-all border-2 shadow-sm group/trash",
+                                        confirmingRecordId === record.id 
+                                          ? "bg-red-600 text-white border-slate-900 scale-110" 
+                                          : "bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white"
+                                      )}
+                                      title={confirmingRecordId === record.id ? "Confirm Delete" : "Delete Record"}
+                                    >
+                                      <Trash2 size={18} className={cn("transition-transform", confirmingRecordId === record.id ? "rotate-12 scale-110" : "group-hover/trash:scale-110")} />
                                     </button>
                                   )}
                                 </div>
