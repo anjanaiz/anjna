@@ -20,7 +20,7 @@ export async function translateToEnglish(text: string): Promise<string> {
     const ai = getAI();
     
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite-preview",
+      model: "gemini-flash-latest",
       contents: `Translate the following maintenance report description from Sinhala to English. 
       If the text is already in English, return it exactly as it is without any changes.
       Do not include any other text, just the translation or the original if it's already English.
