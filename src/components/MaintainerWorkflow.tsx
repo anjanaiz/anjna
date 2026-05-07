@@ -73,7 +73,12 @@ export default function MaintainerWorkflow({
   const [isTranslating, setIsTranslating] = useState(false);
   const [activePicker, setActivePicker] = useState<'start' | 'final' | null>(null);
   
-  const machinesInDept = machines.filter(m => m.department === department);
+  const machinesInDept = useMemo(() => 
+    machines
+      .filter(m => m.department === department)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    [machines, department]
+  );
 
   const pendingReportForMachine = useMemo(() => {
     if (!machine) return null;

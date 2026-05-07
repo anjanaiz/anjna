@@ -53,6 +53,8 @@ export default function SupervisorDashboard({
   const [editDescription, setEditDescription] = useState('');
   const [showAddressed, setShowAddressed] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [editingDateRecordId, setEditingDateRecordId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState<string>('');
 
   const [selectedAnalysisDept, setSelectedAnalysisDept] = useState<Department>(DEPARTMENTS[0]);
   const [selectedAnalysisMachineId, setSelectedAnalysisMachineId] = useState<string | null>(null);
@@ -674,6 +676,47 @@ export default function SupervisorDashboard({
                                   </span>
                                 </div>
                                 <div className="flex gap-2">
+                                  {editingDateRecordId === record.id ? (
+                                    <div className="flex items-center gap-2 bg-white border-2 border-slate-900 p-1.5 rounded-xl shadow-lg animate-in fade-in zoom-in duration-200">
+                                      <input 
+                                        type="date" 
+                                        value={editDate}
+                                        onChange={(e) => setEditDate(e.target.value)}
+                                        className="bg-slate-50 border-none rounded-lg px-3 py-1.5 font-bold text-xs uppercase tracking-wider outline-none focus:ring-2 ring-singer-red/20"
+                                      />
+                                      <button 
+                                        onClick={async () => {
+                                          if (!editDate) return;
+                                          const newDate = new Date(editDate);
+                                          await onUpdateRecord(record.id, { date: newDate.toISOString() });
+                                          setEditingDateRecordId(null);
+                                        }}
+                                        className="p-2 bg-blue-600 text-white rounded-lg hover:bg-slate-900 transition-colors"
+                                        title="Save Date"
+                                      >
+                                        <Save size={16} />
+                                      </button>
+                                      <button 
+                                        onClick={() => setEditingDateRecordId(null)}
+                                        className="p-2 bg-slate-100 text-slate-400 rounded-lg hover:bg-slate-200 transition-colors"
+                                        title="Cancel"
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button 
+                                      onClick={() => {
+                                        setEditingDateRecordId(record.id);
+                                        setEditDate(format(new Date(record.date), 'yyyy-MM-dd'));
+                                      }}
+                                      className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white rounded-xl transition-all border-2 border-slate-100 hover:border-slate-900 shadow-sm"
+                                      title="Change Date"
+                                    >
+                                      <CalendarIcon size={20} />
+                                    </button>
+                                  )}
+
                                   {editingRecordId === record.id ? (
                                     <button 
                                       onClick={async () => {
