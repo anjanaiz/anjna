@@ -203,7 +203,9 @@ export default function App() {
   // Save reports to Firestore
   const addReport = async (newReport: MachineReport) => {
     try {
-      await setDoc(doc(db, 'machine_reports', newReport.id), newReport);
+      const data = { ...newReport };
+      if (data.scheduledAt === undefined) delete data.scheduledAt;
+      await setDoc(doc(db, 'machine_reports', data.id), data);
 
       // Create notification
       const notifId = doc(collection(db, 'notifications')).id;
@@ -251,7 +253,9 @@ export default function App() {
 
   const updateReport = async (reportId: string, updates: Partial<MachineReport>) => {
     try {
-      await setDoc(doc(db, 'machine_reports', reportId), updates, { merge: true });
+      const data = { ...updates };
+      if (data.scheduledAt === undefined) delete data.scheduledAt;
+      await setDoc(doc(db, 'machine_reports', reportId), data, { merge: true });
 
       // If scheduledAt is being updated, create a notification
       if (updates.scheduledAt) {

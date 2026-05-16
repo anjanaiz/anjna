@@ -87,7 +87,7 @@ export default function ModularFactoryFlow({
       description: desc,
       status: 'pending',
       createdAt: new Date().toISOString(),
-      scheduledAt: scheduledDate || undefined
+      ...(scheduledDate && { scheduledAt: scheduledDate })
     };
 
     try {
