@@ -12,8 +12,9 @@ service cloud.firestore {
     }
 
     function isValidRecord(data) {
-      return data.keys().hasAll(['maintainerName', 'role', 'department', 'machineId', 'machineName', 'workType', 'timeType', 'date', 'startTime', 'finishTime', 'duration', 'description', 'createdAt'])
-        && data.keys().size() == 13
+      return data.keys().hasAll(['id', 'maintainerName', 'role', 'department', 'machineId', 'machineName', 'workType', 'timeType', 'date', 'startTime', 'finishTime', 'duration', 'description', 'createdAt'])
+        && data.keys().size() == 14
+        && data.id is string && data.id.size() <= 128
         && data.maintainerName is string && data.maintainerName.size() <= 200
         && data.role in ['Admin', 'Supervisor', 'Maintainer']
         && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other']
@@ -30,15 +31,17 @@ service cloud.firestore {
     }
 
     function isValidReport(data) {
-      return data.keys().hasAll(['department', 'machineId', 'machineName', 'workType', 'description', 'status', 'createdAt'])
-        && data.keys().size() == 7
+      return data.keys().hasAll(['id', 'department', 'machineId', 'machineName', 'workType', 'description', 'status', 'createdAt'])
+        && data.keys().size() >= 8 && data.keys().size() <= 9
+        && data.id is string && data.id.size() <= 128
         && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other']
         && data.machineId is string && data.machineId.size() <= 128
         && data.machineName is string && data.machineName.size() <= 200
         && data.workType in ['Repair', 'Service', 'Break Down']
         && data.description is string && data.description.size() <= 6000
         && data.status in ['pending', 'in-progress', 'addressed']
-        && data.createdAt is string;
+        && data.createdAt is string
+        && (!('scheduledAt' in data) || (data.scheduledAt is string && data.scheduledAt.size() <= 100));
     }
 
     // RECORDS COLLECTION - Public access per user request to remove security layers
@@ -71,8 +74,9 @@ service cloud.firestore {
     }
 
     function isValidNotification(data) {
-      return data.keys().hasAll(['title', 'message', 'type', 'department', 'machineId', 'machineName', 'createdAt', 'readBy'])
-        && data.keys().size() == 8
+      return data.keys().hasAll(['id', 'title', 'message', 'type', 'department', 'machineId', 'machineName', 'createdAt', 'readBy'])
+        && data.keys().size() == 9
+        && data.id is string && data.id.size() <= 128
         && data.title is string && data.title.size() <= 200
         && data.message is string && data.message.size() <= 1000
         && data.type in ['Repair', 'Service', 'Break Down', 'System']

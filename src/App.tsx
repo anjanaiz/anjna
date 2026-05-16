@@ -194,8 +194,7 @@ export default function App() {
   // Save records to Firestore
   const addRecord = async (newRecord: MaintenanceRecord) => {
     try {
-      const { id, ...data } = newRecord;
-      await setDoc(doc(db, 'records', id), data);
+      await setDoc(doc(db, 'records', newRecord.id), newRecord);
     } catch (error) {
       handleFirestoreError(error, 'create', `records/${newRecord.id}`);
     }
@@ -204,15 +203,27 @@ export default function App() {
   // Save reports to Firestore
   const addReport = async (newReport: MachineReport) => {
     try {
-      const { id, ...data } = newReport;
-      await setDoc(doc(db, 'machine_reports', id), data);
+      await setDoc(doc(db, 'machine_reports', newReport.id), newReport);
 
       // Create notification
       const notifId = doc(collection(db, 'notifications')).id;
       const cleanMachineName = newReport.machineName.replace(/<br\s*\/?>/gi, ' ');
+      
+      let title = `${newReport.department} ${newReport.workType} Reported`;
+      let message = `${cleanMachineName} in ${newReport.department} requires ${newReport.workType.toLowerCase()} attention.`;
+
+      if (newReport.scheduledAt && newReport.workType === 'Service') {
+        const scheduledDate = new Date(newReport.scheduledAt);
+        const dateStr = scheduledDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeStr = scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        title = `Service Scheduled: ${cleanMachineName}`;
+        message = `Service for this machine is scheduled for ${dateStr} at ${timeStr}.`;
+      }
+
       await setDoc(doc(db, 'notifications', notifId), {
-        title: `${newReport.department} ${newReport.workType} Reported`,
-        message: `${cleanMachineName} in ${newReport.department} requires ${newReport.workType.toLowerCase()} attention.`,
+        id: notifId,
+        title,
+        message,
         type: newReport.workType,
         department: newReport.department,
         machineId: newReport.machineId,
@@ -241,6 +252,30 @@ export default function App() {
   const updateReport = async (reportId: string, updates: Partial<MachineReport>) => {
     try {
       await setDoc(doc(db, 'machine_reports', reportId), updates, { merge: true });
+
+      // If scheduledAt is being updated, create a notification
+      if (updates.scheduledAt) {
+        const report = reports.find(r => r.id === reportId);
+        if (report) {
+          const notifId = doc(collection(db, 'notifications')).id;
+          const cleanMachineName = report.machineName.replace(/<br\s*\/?>/gi, ' ');
+          const scheduledDate = new Date(updates.scheduledAt);
+          const dateStr = scheduledDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          const timeStr = scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+          
+          await setDoc(doc(db, 'notifications', notifId), {
+            id: notifId,
+            title: `Service Scheduled: ${cleanMachineName}`,
+            message: `Service for this machine is scheduled for ${dateStr} at ${timeStr}.`,
+            type: 'Service',
+            department: report.department,
+            machineId: report.machineId,
+            machineName: cleanMachineName,
+            createdAt: new Date().toISOString(),
+            readBy: []
+          });
+        }
+      }
     } catch (error) {
       handleFirestoreError(error, 'update', `machine_reports/${reportId}`);
     }
@@ -278,8 +313,7 @@ export default function App() {
 
   const addMachine = async (newMachine: Machine) => {
     try {
-      const { id, ...data } = newMachine;
-      await setDoc(doc(db, 'machines', id), data);
+      await setDoc(doc(db, 'machines', newMachine.id), newMachine);
     } catch (error) {
       handleFirestoreError(error, 'create', `machines/${newMachine.id}`);
     }

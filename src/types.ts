@@ -45,6 +45,7 @@ export interface MachineReport {
   description: string;
   status: 'pending' | 'in-progress' | 'addressed';
   createdAt: string; // ISO string
+  scheduledAt?: string; // ISO string
 }
 
 export interface Notification {

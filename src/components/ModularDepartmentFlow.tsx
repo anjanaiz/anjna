@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  Zap
+  Zap,
+  Calendar
 } from 'lucide-react';
 import { cn, formatTime } from '../lib/utils';
 import { translateToEnglish } from '../services/geminiService';
@@ -35,10 +36,11 @@ export default function ModularFactoryFlow({
   reports?: MachineReport[],
   departmentName?: string
 }) {
-  const [step, setStep] = useState<'machines' | 'work-types' | 'description'>('machines');
+  const [step, setStep] = useState<'machines' | 'work-types' | 'description' | 'scheduling'>('machines');
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
   const [selectedWorkType, setSelectedWorkType] = useState<WorkType | null>(null);
   const [description, setDescription] = useState('');
+  const [scheduledAt, setScheduledAt] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -60,7 +62,7 @@ export default function ModularFactoryFlow({
     { type: 'Break Down', icon: AlertTriangle, color: 'bg-singer-red', desc: 'Critical system interruption' },
   ];
 
-  const triggerReport = async (wType: WorkType, desc: string) => {
+  const triggerReport = async (wType: WorkType, desc: string, scheduledDate?: string) => {
     if (!selectedMachine) return;
 
     setIsSubmitting(true);
@@ -73,6 +75,7 @@ export default function ModularFactoryFlow({
       description: desc,
       status: 'pending',
       createdAt: new Date().toISOString(),
+      scheduledAt: scheduledDate || undefined
     };
 
     try {
@@ -96,7 +99,7 @@ export default function ModularFactoryFlow({
   const handleWorkTypeSelect = async (type: WorkType) => {
     setSelectedWorkType(type);
     if (type === 'Service') {
-      await triggerReport('Service', 'Service Requested');
+      setStep('scheduling');
     } else {
       setStep('description');
     }
@@ -144,9 +147,15 @@ export default function ModularFactoryFlow({
                       <span className="text-[9px] font-black uppercase text-singer-red bg-singer-red/5 px-2 py-0.5 rounded-full border border-singer-red/10">
                         {report.workType}
                       </span>
-                      <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                        <Clock size={10} /> {formatTime(report.createdAt)}
-                      </span>
+                      {report.scheduledAt ? (
+                        <span className="text-[8px] font-black text-amber-500 flex items-center gap-1 animate-pulse">
+                          <Calendar size={10} /> PLANNED @ {new Date(report.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      ) : (
+                        <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
+                          <Clock size={10} /> {formatTime(report.createdAt)}
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm font-black text-slate-900 uppercase tracking-tight" dangerouslySetInnerHTML={{ __html: report.machineName.replace('<br>', ' ') }} />
                     <p className="text-[10px] font-bold text-slate-400 italic leading-snug break-words">"{report.description}"</p>
@@ -184,10 +193,11 @@ export default function ModularFactoryFlow({
             <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
               {departmentName} Factory
             </h2>
-            <h1 className="text-2xl sm:text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">
+                <h1 className="text-2xl sm:text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">
               {step === 'machines' ? 'Machine Selection' : 
                step === 'work-types' ? 'Operation Protocol' :
-               step === 'description' ? 'Operational Narrative' : 'Report Logged'}
+               step === 'description' ? 'Operational Narrative' : 
+               step === 'scheduling' ? 'Service Scheduling' : 'Report Logged'}
             </h1>
           </div>
         </header>
@@ -265,6 +275,88 @@ export default function ModularFactoryFlow({
                     </div>
                   </button>
                 ))}
+              </div>
+            </motion.div>
+          ) : step === 'scheduling' ? (
+            <motion.div
+              key="scheduling"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="max-w-2xl mx-auto w-full"
+            >
+              <div className="bg-white rounded-[40px] shadow-2xl border-2 border-slate-900 overflow-hidden">
+                <div className="bg-slate-900 p-8 text-white border-b-4 border-amber-500 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-amber-500 text-slate-900 rounded-xl">
+                      <Calendar size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter italic text-amber-500">Service Schedule</h3>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Temporal Node Assignment</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-8 space-y-8">
+                  <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active unit</span>
+                      <span className="text-xs font-black uppercase tracking-tighter text-slate-900" dangerouslySetInnerHTML={{ __html: selectedMachine?.name || '' }} />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocol</span>
+                      <span className="text-xs font-black uppercase tracking-tighter text-blue-500">ROUTINE SERVICE</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                         <Clock size={12} className="text-amber-500" /> Planned Temporal Coordinates
+                       </label>
+                       <input 
+                         type="datetime-local" 
+                         value={scheduledAt}
+                         onChange={(e) => setScheduledAt(e.target.value)}
+                         className="w-full bg-slate-50 border-4 border-transparent focus:border-amber-500 rounded-[24px] p-6 outline-none transition-all text-slate-800 font-black text-xl uppercase"
+                         required
+                       />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => setStep('work-types')}
+                      className="flex-1 bg-slate-100 text-slate-400 py-6 rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+                    >
+                      ABORT
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        if (!scheduledAt) return;
+                        const dateObj = new Date(scheduledAt);
+                        const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                        await triggerReport('Service', `Service Scheduled for ${dateStr} at ${timeStr}`, dateObj.toISOString());
+                      }}
+                      disabled={isSubmitting || !scheduledAt}
+                      className="flex-[2] bg-amber-500 text-slate-900 py-6 rounded-[24px] font-black text-xl italic tracking-tighter flex items-center justify-center gap-3 hover:bg-slate-900 hover:text-white transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 size={24} className="animate-spin" />
+                          LOGGING...
+                        </>
+                      ) : (
+                        <>
+                          CONFIRM SERVICE
+                          <Send size={24} />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </motion.div>
           ) : step === 'description' ? (

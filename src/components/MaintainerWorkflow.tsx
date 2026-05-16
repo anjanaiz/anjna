@@ -426,7 +426,10 @@ export default function MaintainerWorkflow({
                                 <div key={r.id} className="bg-slate-50 px-4 py-2 rounded-xl flex items-center justify-between group-hover:bg-slate-100 transition-colors border border-transparent group-hover:border-slate-200">
                                   <div className="flex flex-col min-w-0">
                                     <span className="text-[10px] font-black text-slate-900 truncate uppercase" dangerouslySetInnerHTML={{ __html: r.machineName.replace(/<br\s*\/?>/gi, ' ') }} />
-                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">{r.workType}</span>
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                                      {r.workType}
+                                      {r.scheduledAt && ` • PLANNED @ ${new Date(r.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                    </span>
                                   </div>
                                   <ChevronRight size={14} className="text-slate-300 group-hover:text-singer-red transition-colors" />
                                 </div>
@@ -487,8 +490,15 @@ export default function MaintainerWorkflow({
                       >
                         {/* Status Badge */}
                         {machineReport && (
-                          <div className="absolute top-6 left-6 z-20 flex items-center gap-2 bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-singer-red/20 animate-pulse">
-                            <AlertCircle size={10} /> {machineReport.workType}
+                          <div className="absolute top-6 left-6 z-20 flex flex-col items-start gap-1">
+                            <div className="flex items-center gap-2 bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-singer-red/20 animate-pulse">
+                              <AlertCircle size={10} /> {machineReport.workType}
+                            </div>
+                            {machineReport.scheduledAt && (
+                              <div className="bg-amber-500 text-slate-900 text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-amber-500/20">
+                                {new Date(machineReport.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            )}
                           </div>
                         )}
 
