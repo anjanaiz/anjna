@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { MaintenanceRecord, Department, MachineReport, Machine, Notification, User } from '../types';
-import { DEPARTMENTS } from '../constants';
+import { MaintenanceRecord, Factory, MachineReport, Machine, Notification, User } from '../types';
+import { FACTORIES, DEPARTMENTS } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calendar as CalendarIcon, Filter, Download, ChevronLeft, ChevronRight, 
@@ -44,7 +44,7 @@ export default function SupervisorDashboard({
   const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'analysis' | 'map'>('pending');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [filterDept, setFilterDept] = useState<Department | 'All'>('All');
+  const [filterDept, setFilterDept] = useState<Factory | 'All'>('All');
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [confirmingReportId, setConfirmingReportId] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export default function SupervisorDashboard({
   const [editingDateRecordId, setEditingDateRecordId] = useState<string | null>(null);
   const [editDate, setEditDate] = useState<string>('');
 
-  const [selectedAnalysisDept, setSelectedAnalysisDept] = useState<Department>(DEPARTMENTS[0]);
+  const [selectedAnalysisDept, setSelectedAnalysisDept] = useState<Factory>(FACTORIES[0]);
   const [selectedAnalysisMachineId, setSelectedAnalysisMachineId] = useState<string | null>(null);
 
   const analysisData = useMemo(() => {
@@ -124,7 +124,7 @@ export default function SupervisorDashboard({
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Maintainer', 'Dept', 'Machine', 'Type', 'Start', 'Finish', 'Duration', 'Description'];
+    const headers = ['Date', 'Maintainer', 'Factory', 'Machine', 'Type', 'Start', 'Finish', 'Duration', 'Description'];
     const rows = records.map(r => [
       formatDate(r.date),
       r.maintainerName,
@@ -354,7 +354,7 @@ export default function SupervisorDashboard({
                   >
                     Global Audit
                   </button>
-                  {DEPARTMENTS.map(dept => (
+                  {FACTORIES.map(dept => (
                     <button 
                       key={dept}
                       onClick={() => setFilterDept(dept)}
@@ -372,7 +372,7 @@ export default function SupervisorDashboard({
 
             {/* Reports List Column */}
             <div className="lg:col-span-8 space-y-12">
-              {DEPARTMENTS.map(dept => {
+              {FACTORIES.map(dept => {
                 const deptReports = pendingReports.filter(r => r.department === dept);
                 if (deptReports.length === 0) return null;
 
@@ -380,7 +380,7 @@ export default function SupervisorDashboard({
                   <div key={dept} className="space-y-6">
                     <div className="flex items-center gap-4">
                       <div className="h-px flex-1 bg-slate-200" />
-                      <h2 className="text-2xl font-black text-slate-400 uppercase tracking-[0.2em]">{dept} Department</h2>
+                      <h2 className="text-2xl font-black text-slate-400 uppercase tracking-[0.2em]">{dept} Factory</h2>
                       <div className="h-px flex-1 bg-slate-200" />
                     </div>
                     
@@ -592,7 +592,7 @@ export default function SupervisorDashboard({
                   >
                     Global Audit
                   </button>
-                  {DEPARTMENTS.map(dept => (
+                  {FACTORIES.map(dept => (
                     <button 
                       key={dept}
                       onClick={() => setFilterDept(dept)}
@@ -867,9 +867,9 @@ export default function SupervisorDashboard({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">1. Select Department</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">1. Select Factory</label>
                   <div className="flex flex-wrap gap-2">
-                    {DEPARTMENTS.map(dept => (
+                    {FACTORIES.map(dept => (
                       <button
                         key={dept}
                         onClick={() => {
@@ -979,7 +979,7 @@ export default function SupervisorDashboard({
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Scope</p>
                       <h3 className="text-xl font-black uppercase tracking-tighter italic leading-tight">
                         {selectedAnalysisMachineId === 'all' 
-                          ? `${selectedAnalysisDept} Department (All)`
+                          ? `${selectedAnalysisDept} Factory (All)`
                           : machines.find(m => m.id === selectedAnalysisMachineId)?.name.replace(/<br\s*\/?>/gi, ' ')}
                       </h3>
                     </div>

@@ -1,6 +1,7 @@
-import { Machine, Department, User } from './types';
+import { Machine, Factory, User } from './types';
 
-export const DEPARTMENTS: Department[] = ['Agro', 'Modular', 'Solid', 'Sofa', 'Other'];
+export const FACTORIES: Factory[] = ['Agro', 'Modular', 'Solid', 'Sofa', 'Other'];
+export const DEPARTMENTS = FACTORIES;
 
 export const MACHINES: Machine[] = [
   // Modular

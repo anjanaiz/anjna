@@ -11,11 +11,11 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { DEPARTMENTS } from '../constants';
+import { FACTORIES } from '../constants';
 
 import { Machine, MachineReport } from '../types';
 
-export default function DepartmentSelection({ 
+export default function FactorySelection({ 
   onSelect, 
   onBack, 
   machines = [],
@@ -28,11 +28,11 @@ export default function DepartmentSelection({
 }) {
   const depts = [
     { id: 'maintenance', name: 'Maintenance Department', icon: Wrench, color: 'bg-singer-red', tagline: 'Maintenance Machine' },
-    { id: 'Agro', name: 'Agro Department', icon: Droplets, color: 'bg-slate-900', tagline: 'Assemble Water Pump' },
-    { id: 'Modular', name: 'Modular Department', icon: Layers, color: 'bg-slate-900', tagline: 'Build Particle Board Furniture' },
-    { id: 'Solid', name: 'Solid Department', icon: TreeDeciduous, color: 'bg-slate-900', tagline: 'Build Wood Furniture' },
-    { id: 'Sofa', name: 'Sofa Department', icon: Sofa, color: 'bg-slate-900', tagline: 'Build Sofa' },
-    { id: 'Other', name: 'Other Department', icon: Wind, color: 'bg-slate-900', tagline: 'Misc Operations' },
+    { id: 'Agro', name: 'Agro Factory', icon: Droplets, color: 'bg-slate-900', tagline: 'Assemble Water Pump' },
+    { id: 'Modular', name: 'Modular Factory', icon: Layers, color: 'bg-slate-900', tagline: 'Build Particle Board Furniture' },
+    { id: 'Solid', name: 'Solid Factory', icon: TreeDeciduous, color: 'bg-slate-900', tagline: 'Build Wood Furniture' },
+    { id: 'Sofa', name: 'Sofa Factory', icon: Sofa, color: 'bg-slate-900', tagline: 'Build Sofa' },
+    { id: 'Other', name: 'Other Factory', icon: Wind, color: 'bg-slate-900', tagline: 'Misc Operations' },
   ];
 
   const getMachinesForDept = (deptId: string) => {
@@ -64,7 +64,7 @@ export default function DepartmentSelection({
       <div className="max-w-6xl mx-auto w-full py-12 px-6 space-y-12">
         <div className="text-center">
           <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-none uppercase mb-4">
-            Select <span className="text-singer-red">Department</span>
+            Select <span className="text-singer-red">Factory</span>
           </h1>
           <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] sm:text-xs">
             SINGER Industrial Management Portal

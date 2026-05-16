@@ -22,7 +22,7 @@ import {
 import { cn, formatTime } from '../lib/utils';
 import { translateToEnglish } from '../services/geminiService';
 
-export default function ModularDepartmentFlow({ 
+export default function ModularFactoryFlow({ 
   onBack, 
   onReport,
   machines,
@@ -182,7 +182,7 @@ export default function ModularDepartmentFlow({
           
           <div className="text-center">
             <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
-              {departmentName} Department
+              {departmentName} Factory
             </h2>
             <h1 className="text-2xl sm:text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">
               {step === 'machines' ? 'Machine Selection' : 

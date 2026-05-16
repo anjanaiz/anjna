@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { User, MaintenanceRecord, Department, Machine, WorkType, TimeType, MachineReport, Notification } from '../types';
-import { DEPARTMENTS } from '../constants';
+import { User, MaintenanceRecord, Factory, Machine, WorkType, TimeType, MachineReport, Notification } from '../types';
+import { FACTORIES } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronRight, 
@@ -22,7 +22,6 @@ import {
   Zap,
   ClipboardList,
   Save,
-  Factory,
   ArrowRight,
   ArrowLeft,
   Edit2,
@@ -61,7 +60,7 @@ export default function MaintainerWorkflow({
   onDeleteNotification?: (id: string) => Promise<void>
 }) {
   const [step, setStep] = useState(1);
-  const [department, setDepartment] = useState<Department | null>(null);
+  const [department, setDepartment] = useState<Factory | null>(null);
   const [machine, setMachine] = useState<Machine | null>(null);
   const [workType, setWorkType] = useState<WorkType | null>(null);
   const [timeType, setTimeType] = useState<TimeType | null>('Now');
@@ -379,7 +378,7 @@ export default function MaintainerWorkflow({
 
         <div className="p-6 sm:p-12 xl:p-20">
           <AnimatePresence mode="wait">
-            {/* Step 1: Department Selection */}
+            {/* Step 1: Factory Selection */}
             {step === 1 && (
               <motion.div 
                 key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
@@ -388,12 +387,12 @@ export default function MaintainerWorkflow({
                 <header>
                   <h1 className="text-4xl sm:text-6xl md:text-8xl font-black text-slate-900 tracking-tighter leading-[0.8] mb-6 uppercase flex flex-col">
                     <span>SELECT</span>
-                    <span className="text-singer-red">OPERATIONAL DEPARTMENT</span>
+                    <span className="text-singer-red">OPERATIONAL FACTORY</span>
                   </h1>
                   <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs">Establish localized system anchor for logging</p>
                 </header>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                  {DEPARTMENTS.map((dept) => (
+                  {FACTORIES.map((dept) => (
                     <button
                       key={dept}
                       onClick={() => { setDepartment(dept); setStep(2); }}
@@ -407,7 +406,7 @@ export default function MaintainerWorkflow({
                         })()}
                       </div>
                       <div className="relative z-10">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block group-hover:text-singer-red transition-colors">Sector ID: 00{DEPARTMENTS.indexOf(dept) + 1}</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block group-hover:text-singer-red transition-colors">Sector ID: 00{FACTORIES.indexOf(dept) + 1}</span>
                         <span className="text-2xl sm:text-3xl font-black uppercase text-slate-800 tracking-tighter group-hover:text-slate-900">{dept}</span>
                       </div>
                     </button>

@@ -43,12 +43,14 @@ export default function AdminDashboard({
   };
 
   const submitMachine = async () => {
-    if (!newMachine.name || !newMachine.department) return;
+    const trimmedName = newMachine.name?.trim();
+    if (!trimmedName || !newMachine.department) return;
+    
     const machine: Machine = {
       id: editingMachineId || Math.random().toString(36).substr(2, 9),
-      name: newMachine.name,
+      name: trimmedName,
       department: newMachine.department as any,
-      image: newMachine.image
+      image: newMachine.image?.trim() || ''
     };
     await onAddMachine(machine);
     closeMachineModal();

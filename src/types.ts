@@ -6,12 +6,13 @@ export interface User {
   role: JobRole;
 }
 
-export type Department = 'Agro' | 'Modular' | 'Solid' | 'Sofa' | 'Other';
+export type Factory = 'Agro' | 'Modular' | 'Solid' | 'Sofa' | 'Other';
+export type Department = Factory;
 
 export interface Machine {
   id: string;
   name: string;
-  department: Department;
+  department: Factory;
   image?: string;
 }
 
@@ -22,7 +23,7 @@ export interface MaintenanceRecord {
   id: string;
   maintainerName: string;
   role: JobRole;
-  department: Department;
+  department: Factory;
   machineId: string;
   machineName: string;
   workType: WorkType;
@@ -37,7 +38,7 @@ export interface MaintenanceRecord {
 
 export interface MachineReport {
   id: string;
-  department: Department;
+  department: Factory;
   machineId: string;
   machineName: string;
   workType: WorkType;
@@ -51,7 +52,7 @@ export interface Notification {
   title: string;
   message: string;
   type: WorkType | 'System';
-  department: Department;
+  department: Factory;
   machineId: string;
   machineName: string;
   createdAt: string;

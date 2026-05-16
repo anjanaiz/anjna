@@ -20,8 +20,8 @@ const Login = lazy(() => import('./components/Login'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const SupervisorDashboard = lazy(() => import('./components/SupervisorDashboard'));
 const MaintainerWorkflow = lazy(() => import('./components/MaintainerWorkflow'));
-const DepartmentSelection = lazy(() => import('./components/DepartmentSelection'));
-const ModularDepartmentFlow = lazy(() => import('./components/ModularDepartmentFlow'));
+const FactorySelection = lazy(() => import('./components/DepartmentSelection'));
+const ModularFactoryFlow = lazy(() => import('./components/ModularDepartmentFlow'));
 
 // Loading Fallback
 function LoadingScreen() {
@@ -87,7 +87,7 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-type Page = 'splash' | 'department-selection' | 'login' | 'admin' | 'supervisor' | 'maintainer' | 'modular-dept';
+type Page = 'splash' | 'factory-selection' | 'login' | 'admin' | 'supervisor' | 'maintainer' | 'modular-factory';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('splash');
@@ -314,7 +314,7 @@ export default function App() {
     await logout();
     setCurrentUser(null);
     sessionStorage.removeItem('singer_current_user');
-    setCurrentPage('department-selection');
+    setCurrentPage('factory-selection');
   };
 
   const renderPage = () => {
@@ -323,10 +323,10 @@ export default function App() {
         {(() => {
           switch (currentPage) {
             case 'splash':
-              return <Splash onComplete={() => setCurrentPage('department-selection')} />;
-            case 'department-selection':
+              return <Splash onComplete={() => setCurrentPage('factory-selection')} />;
+            case 'factory-selection':
               return (
-                <DepartmentSelection 
+                <FactorySelection 
                   machines={machines}
                   reports={reports}
                   onBack={() => setCurrentPage('splash')}
@@ -335,15 +335,15 @@ export default function App() {
                       setCurrentPage('login');
                     } else {
                       setSelectedDept(deptId);
-                      setCurrentPage('modular-dept');
+                      setCurrentPage('modular-factory');
                     }
                   }} 
                 />
               );
-            case 'modular-dept':
+            case 'modular-factory':
               return (
-                <ModularDepartmentFlow 
-                  onBack={() => setCurrentPage('department-selection')} 
+                <ModularFactoryFlow 
+                  onBack={() => setCurrentPage('factory-selection')} 
                   onReport={addReport}
                   machines={machines}
                   reports={reports}
@@ -403,8 +403,8 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-        {/* Header (Hidden on splash, login, and department selection) */}
-        {currentPage !== 'splash' && currentPage !== 'login' && currentPage !== 'department-selection' && (
+        {/* Header (Hidden on splash, login, and factory selection) */}
+        {currentPage !== 'splash' && currentPage !== 'login' && currentPage !== 'factory-selection' && (
           <header className="bg-singer-red text-white px-4 py-8 sm:px-8 sm:py-10 flex justify-center items-center shrink-0 shadow-lg relative z-50">
             <SingerLogo variant="white" className="scale-110 sm:scale-125" />
           </header>
@@ -415,7 +415,7 @@ export default function App() {
         </main>
 
         {/* Basic Footer */}
-        {currentPage !== 'splash' && currentPage !== 'department-selection' && currentPage !== 'modular-dept' && (
+        {currentPage !== 'splash' && currentPage !== 'factory-selection' && currentPage !== 'modular-factory' && (
           <footer className="py-8 sm:py-12 px-4 sm:px-8 text-center bg-slate-50 border-t border-slate-200">
             <p className="text-[9px] sm:text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] sm:tracking-[0.4em] leading-relaxed">
               © {new Date().getFullYear()} SINGER (Sri Lanka) PLC <br className="sm:hidden" /> // INDUSTRIAL MAINTENANCE PROTOCOL

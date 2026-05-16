@@ -15,7 +15,7 @@ export default function Login({ onLogin, onBack }: { onLogin: (user: User) => vo
 
   const roles: { id: JobRole; label: string; desc: string }[] = [
     { id: 'Admin', label: 'Admin Controller', desc: 'Full System Audit Access' },
-    { id: 'Supervisor', label: 'Supervisor', desc: 'Departmental Oversight' },
+    { id: 'Supervisor', label: 'Supervisor', desc: 'Factory Oversight' },
     { id: 'Maintainer', label: 'Machine Maintainer', desc: 'Standard Operational Logging' }
   ];
 
