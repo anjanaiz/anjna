@@ -392,25 +392,56 @@ export default function MaintainerWorkflow({
                   <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs">Establish localized system anchor for logging</p>
                 </header>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                  {FACTORIES.map((dept) => (
-                    <button
-                      key={dept}
-                      onClick={() => { setDepartment(dept); setStep(2); }}
-                      className="group bg-white border-2 border-slate-200 rounded-[32px] p-8 sm:p-12 flex flex-col items-start justify-center gap-6 hover:border-slate-900 hover:shadow-[40px_40px_80px_rgba(0,0,0,0.05)] hover:-translate-y-2 transition-all text-left relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-8 text-slate-50 text-6xl font-black opacity-0 group-hover:opacity-100 transition-opacity select-none">{dept.charAt(0)}</div>
-                      <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all shadow-inner relative z-10">
-                        {(() => {
-                          const Icon = getDeptIcon(dept);
-                          return <Icon size={32} />;
-                        })()}
-                      </div>
-                      <div className="relative z-10">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block group-hover:text-singer-red transition-colors">Sector ID: 00{FACTORIES.indexOf(dept) + 1}</span>
-                        <span className="text-2xl sm:text-3xl font-black uppercase text-slate-800 tracking-tighter group-hover:text-slate-900">{dept}</span>
-                      </div>
-                    </button>
-                  ))}
+                  {FACTORIES.map((dept) => {
+                    const pendingReports = reports.filter(r => r.department === dept && r.status === 'pending');
+                    return (
+                      <button
+                        key={dept}
+                        onClick={() => { setDepartment(dept); setStep(2); }}
+                        className="group bg-white border-2 border-slate-200 rounded-[32px] p-8 sm:p-12 flex flex-col items-start justify-center gap-6 hover:border-slate-900 hover:shadow-[40px_40px_80px_rgba(0,0,0,0.05)] hover:-translate-y-2 transition-all text-left relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-8 text-slate-50 text-6xl font-black opacity-0 group-hover:opacity-100 transition-opacity select-none">{dept.charAt(0)}</div>
+                        <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all shadow-inner relative z-10">
+                          {(() => {
+                            const Icon = getDeptIcon(dept);
+                            return <Icon size={32} />;
+                          })()}
+                        </div>
+                        <div className="relative z-10 w-full">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block group-hover:text-singer-red transition-colors">Sector ID: 00{FACTORIES.indexOf(dept) + 1}</span>
+                          <span className="text-2xl sm:text-3xl font-black uppercase text-slate-800 tracking-tighter group-hover:text-slate-900">{dept} Factory</span>
+                        </div>
+
+                        {/* Pending Tasks Section */}
+                        {pendingReports.length > 0 && (
+                          <div className="w-full space-y-3 relative z-10 pt-4 border-t border-slate-50">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black text-singer-red uppercase tracking-widest flex items-center gap-2">
+                                <AlertCircle size={12} className="animate-pulse" /> Pending Tasks
+                              </span>
+                              <span className="bg-singer-red text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-singer-red/20">{pendingReports.length}</span>
+                            </div>
+                            <div className="space-y-1.5">
+                              {pendingReports.slice(0, 2).map((r) => (
+                                <div key={r.id} className="bg-slate-50 px-4 py-2 rounded-xl flex items-center justify-between group-hover:bg-slate-100 transition-colors border border-transparent group-hover:border-slate-200">
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[10px] font-black text-slate-900 truncate uppercase" dangerouslySetInnerHTML={{ __html: r.machineName.replace(/<br\s*\/?>/gi, ' ') }} />
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">{r.workType}</span>
+                                  </div>
+                                  <ChevronRight size={14} className="text-slate-300 group-hover:text-singer-red transition-colors" />
+                                </div>
+                              ))}
+                              {pendingReports.length > 2 && (
+                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center pt-2 italic">
+                                  + {pendingReports.length - 2} additional alerts
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
