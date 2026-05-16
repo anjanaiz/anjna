@@ -44,12 +44,24 @@ export default function ModularFactoryFlow({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
-  const filteredMachines = useMemo(() => 
-    machines
+  const filteredMachines = useMemo(() => {
+    const getPriority = (m: Machine) => {
+      const activeReports = reports.filter(r => r.machineId === m.id && r.status === 'pending');
+      if (activeReports.some(r => r.workType === 'Break Down')) return 1;
+      if (activeReports.some(r => r.workType === 'Repair')) return 2;
+      if (activeReports.some(r => r.workType === 'Service')) return 3;
+      return 4;
+    };
+
+    return machines
       .filter(m => m.department === departmentName)
-      .sort((a, b) => a.name.localeCompare(b.name)),
-    [machines, departmentName]
-  );
+      .sort((a, b) => {
+        const priorityA = getPriority(a);
+        const priorityB = getPriority(b);
+        if (priorityA !== priorityB) return priorityA - priorityB;
+        return a.name.localeCompare(b.name);
+      });
+  }, [machines, departmentName, reports]);
 
   const pendingReportsInDept = useMemo(() => 
     reports.filter(r => r.department === departmentName && r.status === 'pending'),

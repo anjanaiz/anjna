@@ -72,12 +72,25 @@ export default function MaintainerWorkflow({
   const [isTranslating, setIsTranslating] = useState(false);
   const [activePicker, setActivePicker] = useState<'start' | 'final' | null>(null);
   
-  const machinesInDept = useMemo(() => 
-    machines
+  const machinesInDept = useMemo(() => {
+    const getPriority = (m: Machine) => {
+      const activeReport = reports.find(r => r.machineId === m.id && r.status === 'pending');
+      if (!activeReport) return 4;
+      if (activeReport.workType === 'Break Down') return 1;
+      if (activeReport.workType === 'Repair') return 2;
+      if (activeReport.workType === 'Service') return 3;
+      return 4;
+    };
+
+    return machines
       .filter(m => m.department === department)
-      .sort((a, b) => a.name.localeCompare(b.name)),
-    [machines, department]
-  );
+      .sort((a, b) => {
+        const priorityA = getPriority(a);
+        const priorityB = getPriority(b);
+        if (priorityA !== priorityB) return priorityA - priorityB;
+        return a.name.localeCompare(b.name);
+      });
+  }, [machines, department, reports]);
 
   const pendingReportForMachine = useMemo(() => {
     if (!machine) return null;
