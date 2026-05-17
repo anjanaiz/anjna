@@ -2,6 +2,7 @@ import { Machine, Factory, User } from './types';
 
 export const FACTORIES: Factory[] = ['Agro', 'Modular', 'Solid', 'Sofa', 'Other'];
 export const DEPARTMENTS = FACTORIES;
+export const SUB_LOCATIONS = ['AGRO FACTORY', 'MODULOR FACTORY', 'SOLID FACTORY', 'SOFA FACTORY', 'MAIN OFFICE', 'WAREHOUSE'];
 
 export const MACHINES: Machine[] = [
   // Modular

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { FACTORIES, SUB_LOCATIONS } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { Machine, WorkType, MachineReport } from '../types';
 import SingerLogo from './SingerLogo';
@@ -18,10 +19,26 @@ import {
   AlertCircle,
   Clock,
   Zap,
-  Calendar
+  Calendar,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon
 } from 'lucide-react';
 import { cn, formatTime } from '../lib/utils';
 import { translateToEnglish } from '../services/geminiService';
+import { 
+  format, 
+  addMonths, 
+  subMonths, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfWeek, 
+  endOfWeek, 
+  eachDayOfInterval, 
+  isSameMonth, 
+  isSameDay, 
+  isToday 
+} from 'date-fns';
+import AnalogTimePicker from './AnalogTimePicker';
 
 export default function ModularFactoryFlow({ 
   onBack, 
@@ -36,11 +53,16 @@ export default function ModularFactoryFlow({
   reports?: MachineReport[],
   departmentName?: string
 }) {
-  const [step, setStep] = useState<'machines' | 'work-types' | 'description' | 'scheduling'>('machines');
+  const [step, setStep] = useState<'machines' | 'location' | 'work-types' | 'description' | 'scheduling'>('machines');
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedWorkType, setSelectedWorkType] = useState<WorkType | null>(null);
   const [description, setDescription] = useState('');
   const [scheduledAt, setScheduledAt] = useState<string>('');
+  const [scheduledMonth, setScheduledMonth] = useState(new Date());
+  const [scheduledDate, setScheduledDate] = useState(new Date());
+  const [scheduledTime, setScheduledTime] = useState(format(new Date(), 'HH:mm'));
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -64,7 +86,10 @@ export default function ModularFactoryFlow({
   }, [machines, departmentName, reports]);
 
   const pendingReportsInDept = useMemo(() => 
-    reports.filter(r => r.department === departmentName && r.status === 'pending'),
+    reports.filter(r => 
+      r.status === 'pending' && 
+      (r.department === departmentName || (departmentName === 'Other' && SUB_LOCATIONS.includes(r.department)))
+    ),
     [reports, departmentName]
   );
 
@@ -80,7 +105,7 @@ export default function ModularFactoryFlow({
     setIsSubmitting(true);
     const report: MachineReport = {
       id: Math.random().toString(36).substr(2, 9),
-      department: (selectedMachine.department as any) || departmentName,
+      department: (selectedLocation as any) || (selectedMachine.department as any) || departmentName,
       machineId: selectedMachine.id,
       machineName: selectedMachine.name,
       workType: wType,
@@ -105,8 +130,27 @@ export default function ModularFactoryFlow({
 
   const handleMachineSelect = (m: Machine) => {
     setSelectedMachine(m);
+    if (departmentName === 'Other') {
+      setStep('location');
+    } else {
+      setStep('work-types');
+    }
+  };
+
+  const handleLocationSelect = (loc: string) => {
+    setSelectedLocation(loc);
     setStep('work-types');
   };
+
+  // Initialize scheduling state
+  useEffect(() => {
+    if (step === 'scheduling') {
+      const now = new Date();
+      setScheduledDate(now);
+      setScheduledTime(format(now, 'HH:mm'));
+      setScheduledMonth(now);
+    }
+  }, [step]);
 
   const handleWorkTypeSelect = async (type: WorkType) => {
     setSelectedWorkType(type);
@@ -169,7 +213,12 @@ export default function ModularFactoryFlow({
                         </span>
                       )}
                     </div>
-                    <div className="text-sm font-black text-slate-900 uppercase tracking-tight" dangerouslySetInnerHTML={{ __html: report.machineName.replace('<br>', ' ') }} />
+                    <div className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2" dangerouslySetInnerHTML={{ __html: report.machineName.replace('<br>', ' ') }} />
+                    {SUB_LOCATIONS.includes(report.department) && (
+                      <div className="bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full w-fit">
+                        {report.department}
+                      </div>
+                    )}
                     <p className="text-[10px] font-bold text-slate-400 italic leading-snug break-words">"{report.description}"</p>
                   </div>
                 </div>
@@ -192,11 +241,16 @@ export default function ModularFactoryFlow({
           <button 
             onClick={() => {
               if (step === 'machines') onBack();
-              else if (step === 'work-types') setStep('machines');
+              else if (step === 'location') setStep('machines');
+              else if (step === 'work-types') {
+                if (departmentName === 'Other') setStep('location');
+                else setStep('machines');
+              }
               else if (step === 'description') setStep('work-types');
+              else if (step === 'scheduling') setStep('work-types');
             }}
             className="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-white border-2 border-slate-200 rounded-xl hover:border-slate-900 transition-all text-slate-900 z-10 shadow-sm"
-            disabled={step === 'success' || isSubmitting}
+            disabled={isSubmitting}
           >
             <ChevronLeft size={20} />
           </button>
@@ -207,6 +261,7 @@ export default function ModularFactoryFlow({
             </h2>
                 <h1 className="text-2xl sm:text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">
               {step === 'machines' ? 'Machine Selection' : 
+               step === 'location' ? 'Location Assignment' :
                step === 'work-types' ? 'Operation Protocol' :
                step === 'description' ? 'Operational Narrative' : 
                step === 'scheduling' ? 'Service Scheduling' : 'Report Logged'}
@@ -243,6 +298,48 @@ export default function ModularFactoryFlow({
                 </button>
               ))}
             </motion.div>
+          ) : step === 'location' ? (
+            <motion.div
+              key="location"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="max-w-2xl mx-auto w-full"
+            >
+              <div className="bg-white rounded-[40px] shadow-2xl border-2 border-slate-900 overflow-hidden">
+                <div className="bg-slate-900 p-8 text-white border-b-4 border-singer-red flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-singer-red rounded-xl">
+                      <Activity size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter italic">Area Identification</h3>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Operational Zone</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    'AGRO FACTORY',
+                    'MODULOR FACTORY',
+                    'SOLID FACTORY',
+                    'SOFA FACTORY',
+                    'MAIN OFFICE',
+                    'WAREHOUSE'
+                  ].map((loc) => (
+                    <button
+                      key={loc}
+                      onClick={() => handleLocationSelect(loc)}
+                      className="group bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 text-left hover:border-slate-900 hover:bg-white transition-all flex items-center justify-between"
+                    >
+                      <span className="text-sm font-black uppercase tracking-tight text-slate-900">{loc}</span>
+                      <ChevronRight size={18} className="text-slate-300 group-hover:text-singer-red transition-all" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
           ) : step === 'work-types' ? (
             <motion.div 
               key="work-types"
@@ -266,7 +363,9 @@ export default function ModularFactoryFlow({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {workTypes.map((wt) => (
+                {workTypes
+                  .filter(wt => departmentName === 'Other' ? (wt.type === 'Repair' || wt.type === 'Service') : true)
+                  .map((wt) => (
                   <button
                     key={wt.type}
                     onClick={() => handleWorkTypeSelect(wt.type)}
@@ -295,7 +394,7 @@ export default function ModularFactoryFlow({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-2xl mx-auto w-full"
+              className="max-w-4xl mx-auto w-full"
             >
               <div className="bg-white rounded-[40px] shadow-2xl border-2 border-slate-900 overflow-hidden">
                 <div className="bg-slate-900 p-8 text-white border-b-4 border-amber-500 flex items-center justify-between">
@@ -305,71 +404,148 @@ export default function ModularFactoryFlow({
                     </div>
                     <div>
                       <h3 className="text-2xl font-black uppercase tracking-tighter italic text-amber-500">Service Schedule</h3>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Temporal Node Assignment</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocol Assignment: Service</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-8 space-y-8">
-                  <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active unit</span>
-                      <span className="text-xs font-black uppercase tracking-tighter text-slate-900" dangerouslySetInnerHTML={{ __html: selectedMachine?.name || '' }} />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocol</span>
-                      <span className="text-xs font-black uppercase tracking-tighter text-blue-500">ROUTINE SERVICE</span>
+                <div className="p-4 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Modern Calendar */}
+                  <div className="space-y-6">
+                    <header className="flex items-center justify-between px-2">
+                       <h4 className="text-lg font-black uppercase tracking-tighter text-slate-900 italic">
+                         {format(scheduledMonth, 'MMMM yyyy')}
+                       </h4>
+                       <div className="flex gap-2">
+                         <button 
+                           onClick={() => setScheduledMonth(subMonths(scheduledMonth, 1))}
+                           className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                         >
+                           <ChevronLeft size={20} />
+                         </button>
+                         <button 
+                           onClick={() => setScheduledMonth(addMonths(scheduledMonth, 1))}
+                           className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                         >
+                           <ChevronRight size={20} />
+                         </button>
+                       </div>
+                    </header>
+
+                    <div className="grid grid-cols-7 gap-1">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+                        <div key={d} className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center py-2">{d}</div>
+                      ))}
+                      {(() => {
+                        const start = startOfWeek(startOfMonth(scheduledMonth), { weekStartsOn: 1 });
+                        const end = endOfWeek(endOfMonth(scheduledMonth), { weekStartsOn: 1 });
+                        const days = eachDayOfInterval({ start, end });
+                        
+                        return days.map(day => (
+                          <button
+                            key={day.toString()}
+                            onClick={() => setScheduledDate(day)}
+                            className={cn(
+                              "aspect-square flex flex-col items-center justify-center rounded-2xl text-sm font-black transition-all relative group",
+                              !isSameMonth(day, scheduledMonth) ? "text-slate-200" : "text-slate-900",
+                              isSameDay(day, scheduledDate) ? "bg-amber-500 text-slate-900 scale-110 shadow-lg shadow-amber-500/20 z-10" : "hover:bg-slate-50",
+                              isToday(day) && !isSameDay(day, scheduledDate) && "text-singer-red after:content-[''] after:absolute after:bottom-2 after:w-1 after:h-1 after:bg-singer-red after:rounded-full"
+                            )}
+                          >
+                            {format(day, 'd')}
+                          </button>
+                        ));
+                      })()}
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                         <Clock size={12} className="text-amber-500" /> Planned Temporal Coordinates
-                       </label>
-                       <input 
-                         type="datetime-local" 
-                         value={scheduledAt}
-                         onChange={(e) => setScheduledAt(e.target.value)}
-                         className="w-full bg-slate-50 border-4 border-transparent focus:border-amber-500 rounded-[24px] p-6 outline-none transition-all text-slate-800 font-black text-xl uppercase"
-                         required
-                       />
-                    </div>
-                  </div>
+                  {/* Time & Confirmation */}
+                  <div className="space-y-8 flex flex-col justify-between">
+                    <div className="space-y-6">
+                      <div className="bg-slate-50 p-6 rounded-3xl border-2 border-slate-100 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected Date</span>
+                          <span className="text-sm font-black uppercase text-slate-900 italic">
+                            {format(scheduledDate, 'EEEE, MMM do')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Unit Identity</span>
+                          <span className="text-sm font-black text-slate-900 text-right" dangerouslySetInnerHTML={{ __html: selectedMachine?.name || '' }} />
+                        </div>
+                      </div>
 
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={() => setStep('work-types')}
-                      className="flex-1 bg-slate-100 text-slate-400 py-6 rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
-                    >
-                      ABORT
-                    </button>
-                    <button 
-                      onClick={async () => {
-                        if (!scheduledAt) return;
-                        const dateObj = new Date(scheduledAt);
-                        const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                        const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-                        await triggerReport('Service', `Service Scheduled for ${dateStr} at ${timeStr}`, dateObj.toISOString());
-                      }}
-                      disabled={isSubmitting || !scheduledAt}
-                      className="flex-[2] bg-amber-500 text-slate-900 py-6 rounded-[24px] font-black text-xl italic tracking-tighter flex items-center justify-center gap-3 hover:bg-slate-900 hover:text-white transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 size={24} className="animate-spin" />
-                          LOGGING...
-                        </>
-                      ) : (
-                        <>
-                          CONFIRM SERVICE
-                          <Send size={24} />
-                        </>
-                      )}
-                    </button>
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] block ml-4 leading-none">Temporal Coordinate</label>
+                        <button 
+                          onClick={() => setIsTimePickerOpen(true)}
+                          className="w-full bg-slate-50 border-4 border-transparent hover:border-amber-500 rounded-[32px] p-8 transition-all flex items-center justify-between group shadow-inner"
+                        >
+                          <div className="flex items-center gap-6">
+                            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all">
+                              <Clock size={32} />
+                            </div>
+                            <div className="text-left">
+                              <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Service Time</div>
+                              <div className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">
+                                {scheduledTime}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                            <ChevronRight size={24} />
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={() => setStep('work-types')}
+                        className="flex-1 bg-slate-100 text-slate-400 py-6 rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all border-2 border-transparent"
+                      >
+                        Abort
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const [hours, minutes] = scheduledTime.split(':');
+                          const finalDate = new Date(scheduledDate);
+                          finalDate.setHours(parseInt(hours), parseInt(minutes));
+                          
+                          const dateStr = format(finalDate, 'dd MMM yyyy');
+                          const timeStr = format(finalDate, 'hh:mm a');
+                          await triggerReport('Service', `Service Scheduled for ${dateStr} at ${timeStr}`, finalDate.toISOString());
+                        }}
+                        disabled={isSubmitting}
+                        className="flex-[2] bg-amber-500 text-slate-900 py-6 rounded-[24px] font-black text-xl italic tracking-tighter flex items-center justify-center gap-3 hover:bg-slate-900 hover:text-white transition-all shadow-xl shadow-amber-500/20 disabled:opacity-50"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 size={24} className="animate-spin" />
+                            Logging...
+                          </>
+                        ) : (
+                          <>
+                            Log Schedule
+                            <Send size={24} />
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              <AnimatePresence>
+                {isTimePickerOpen && (
+                  <AnalogTimePicker 
+                    label="Service Execution Time"
+                    value={scheduledTime}
+                    onClose={() => setIsTimePickerOpen(false)}
+                    onChange={(val) => setScheduledTime(val)}
+                  />
+                )}
+              </AnimatePresence>
             </motion.div>
           ) : step === 'description' ? (
             <motion.div

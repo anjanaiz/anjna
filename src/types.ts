@@ -7,7 +7,8 @@ export interface User {
 }
 
 export type Factory = 'Agro' | 'Modular' | 'Solid' | 'Sofa' | 'Other';
-export type Department = Factory;
+export type SubLocation = 'AGRO FACTORY' | 'MODULOR FACTORY' | 'SOLID FACTORY' | 'SOFA FACTORY' | 'MAIN OFFICE' | 'WAREHOUSE';
+export type Department = Factory | SubLocation;
 
 export interface Machine {
   id: string;
@@ -23,7 +24,7 @@ export interface MaintenanceRecord {
   id: string;
   maintainerName: string;
   role: JobRole;
-  department: Factory;
+  department: Department;
   machineId: string;
   machineName: string;
   workType: WorkType;
@@ -38,7 +39,7 @@ export interface MaintenanceRecord {
 
 export interface MachineReport {
   id: string;
-  department: Factory;
+  department: Department;
   machineId: string;
   machineName: string;
   workType: WorkType;
@@ -53,7 +54,7 @@ export interface Notification {
   title: string;
   message: string;
   type: WorkType | 'System';
-  department: Factory;
+  department: Department;
   machineId: string;
   machineName: string;
   createdAt: string;

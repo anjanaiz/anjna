@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { MaintenanceRecord, Factory, MachineReport, Machine, Notification, User } from '../types';
-import { FACTORIES, DEPARTMENTS } from '../constants';
+import { FACTORIES, DEPARTMENTS, SUB_LOCATIONS } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calendar as CalendarIcon, Filter, Download, ChevronLeft, ChevronRight, 
@@ -111,13 +111,13 @@ export default function SupervisorDashboard({
 
   const dailyRecords = records.filter(r => 
     selectedDate && isSameDay(new Date(r.date), selectedDate) &&
-    (filterDept === 'All' || r.department === filterDept)
+    (filterDept === 'All' || r.department === filterDept || (filterDept === 'Other' && SUB_LOCATIONS.includes(r.department)))
   );
 
   const pendingReports = reports.filter(r => 
     (showAddressed ? (r.status === 'pending' || r.status === 'addressed') : r.status === 'pending') &&
     (!selectedDate || isSameDay(new Date(r.createdAt), selectedDate)) &&
-    (filterDept === 'All' || r.department === filterDept)
+    (filterDept === 'All' || r.department === filterDept || (filterDept === 'Other' && SUB_LOCATIONS.includes(r.department)))
   );
 
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -259,7 +259,10 @@ export default function SupervisorDashboard({
                   
                   <div className="space-y-4">
                     {DEPARTMENTS.map(dept => {
-                      const count = reports.filter(r => r.department === dept && r.status === 'pending').length;
+                      const count = reports.filter(r => 
+                        (r.department === dept || (dept === 'Other' && SUB_LOCATIONS.includes(r.department))) && 
+                        r.status === 'pending'
+                      ).length;
                       if (count === 0) return null;
                       return (
                         <div key={dept} className="flex items-center justify-between group/item">
@@ -373,7 +376,9 @@ export default function SupervisorDashboard({
             {/* Reports List Column */}
             <div className="lg:col-span-8 space-y-12">
               {FACTORIES.map(dept => {
-                const deptReports = pendingReports.filter(r => r.department === dept);
+                const deptReports = pendingReports.filter(r => 
+                  r.department === dept || (dept === 'Other' && SUB_LOCATIONS.includes(r.department))
+                );
                 if (deptReports.length === 0) return null;
 
                 return (

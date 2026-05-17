@@ -17,7 +17,7 @@ service cloud.firestore {
         && data.id is string && data.id.size() <= 128
         && data.maintainerName is string && data.maintainerName.size() <= 200
         && data.role in ['Admin', 'Supervisor', 'Maintainer']
-        && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other']
+        && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other', 'AGRO FACTORY', 'MODULOR FACTORY', 'SOLID FACTORY', 'SOFA FACTORY', 'MAIN OFFICE', 'WAREHOUSE']
         && data.machineId is string && data.machineId.size() <= 128
         && data.machineName is string && data.machineName.size() <= 200
         && data.workType in ['Repair', 'Service', 'Break Down']
@@ -34,7 +34,7 @@ service cloud.firestore {
       return data.keys().hasAll(['id', 'department', 'machineId', 'machineName', 'workType', 'description', 'status', 'createdAt'])
         && data.keys().size() >= 8 && data.keys().size() <= 9
         && data.id is string && data.id.size() <= 128
-        && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other']
+        && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other', 'AGRO FACTORY', 'MODULOR FACTORY', 'SOLID FACTORY', 'SOFA FACTORY', 'MAIN OFFICE', 'WAREHOUSE']
         && data.machineId is string && data.machineId.size() <= 128
         && data.machineName is string && data.machineName.size() <= 200
         && data.workType in ['Repair', 'Service', 'Break Down']
@@ -80,7 +80,7 @@ service cloud.firestore {
         && data.title is string && data.title.size() <= 200
         && data.message is string && data.message.size() <= 1000
         && data.type in ['Repair', 'Service', 'Break Down', 'System']
-        && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other']
+        && data.department in ['Agro', 'Modular', 'Solid', 'Sofa', 'Other', 'AGRO FACTORY', 'MODULOR FACTORY', 'SOLID FACTORY', 'SOFA FACTORY', 'MAIN OFFICE', 'WAREHOUSE']
         && data.machineId is string && data.machineId.size() <= 128
         && data.machineName is string && data.machineName.size() <= 200
         && data.createdAt is string

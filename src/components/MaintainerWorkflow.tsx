@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { User, MaintenanceRecord, Factory, Machine, WorkType, TimeType, MachineReport, Notification } from '../types';
-import { FACTORIES } from '../constants';
+import { FACTORIES, SUB_LOCATIONS } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronRight, 
@@ -62,6 +62,7 @@ export default function MaintainerWorkflow({
   const [step, setStep] = useState(1);
   const [department, setDepartment] = useState<Factory | null>(null);
   const [machine, setMachine] = useState<Machine | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [workType, setWorkType] = useState<WorkType | null>(null);
   const [timeType, setTimeType] = useState<TimeType | null>('Now');
   const [startTime, setStartTime] = useState<string>('');
@@ -135,7 +136,7 @@ export default function MaintainerWorkflow({
       id: Math.random().toString(36).substr(2, 9),
       maintainerName: user.name,
       role: user.role,
-      department,
+      department: selectedLocation || department,
       machineId: machine.id,
       machineName: machine.name,
       workType,
@@ -163,6 +164,7 @@ export default function MaintainerWorkflow({
     setStep(1);
     setDepartment(null);
     setMachine(null);
+    setSelectedLocation(null);
     setWorkType(null);
     setTimeType('Now');
     setStartTime('');
@@ -179,7 +181,7 @@ export default function MaintainerWorkflow({
       id: Math.random().toString(36).substr(2, 9),
       maintainerName: user.name,
       role: user.role,
-      department,
+      department: selectedLocation || department,
       machineId: machine.id,
       machineName: machine.name,
       workType: 'Service',
@@ -221,7 +223,7 @@ export default function MaintainerWorkflow({
         id: Math.random().toString(36).substr(2, 9),
         maintainerName: user.name,
         role: user.role,
-        department,
+        department: selectedLocation || department,
         machineId: machine.id,
         machineName: machine.name,
         workType,
@@ -359,7 +361,13 @@ export default function MaintainerWorkflow({
 
         {/* Back Button (Floating) */}
         <button 
-          onClick={step === 1 ? onLogout : () => setStep(step - 1)}
+          onClick={step === 1 ? onLogout : () => {
+            if (step === 3 && department === 'Other' && selectedLocation) {
+              setSelectedLocation(null);
+            } else {
+              setStep(step - 1);
+            }
+          }}
           className="absolute top-6 left-6 w-10 h-10 flex items-center justify-center bg-white border-2 border-slate-200 rounded-xl hover:border-slate-900 transition-all text-slate-900 z-[60] shadow-sm group hidden lg:flex"
         >
           <ChevronLeft size={20} />
@@ -368,7 +376,13 @@ export default function MaintainerWorkflow({
         {/* Mobile Progress Bar (Visible on < LG) */}
         <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-slate-200 px-6 py-4 flex items-center gap-4">
           <button 
-            onClick={step === 1 ? onLogout : () => setStep(step - 1)}
+            onClick={step === 1 ? onLogout : () => {
+              if (step === 3 && department === 'Other' && selectedLocation) {
+                setSelectedLocation(null);
+              } else {
+                setStep(step - 1);
+              }
+            }}
             className="w-10 h-10 flex items-center justify-center bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 shrink-0"
           >
             <ChevronLeft size={20} />
@@ -406,7 +420,10 @@ export default function MaintainerWorkflow({
                 </header>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   {FACTORIES.map((dept) => {
-                    const pendingReports = reports.filter(r => r.department === dept && r.status === 'pending');
+                    const pendingReports = reports.filter(r => 
+                      r.status === 'pending' && 
+                      (r.department === dept || (dept === 'Other' && SUB_LOCATIONS.includes(r.department)))
+                    );
                     return (
                       <button
                         key={dept}
@@ -438,7 +455,12 @@ export default function MaintainerWorkflow({
                               {pendingReports.slice(0, 2).map((r) => (
                                 <div key={r.id} className="bg-slate-50 px-4 py-2 rounded-xl flex items-center justify-between group-hover:bg-slate-100 transition-colors border border-transparent group-hover:border-slate-200">
                                   <div className="flex flex-col min-w-0">
-                                    <span className="text-[10px] font-black text-slate-900 truncate uppercase" dangerouslySetInnerHTML={{ __html: r.machineName.replace(/<br\s*\/?>/gi, ' ') }} />
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                      <span className="text-[10px] font-black text-slate-900 truncate uppercase" dangerouslySetInnerHTML={{ __html: r.machineName.replace(/<br\s*\/?>/gi, ' ') }} />
+                                      {SUB_LOCATIONS.includes(r.department) && (
+                                        <span className="bg-singer-red text-[8px] text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest scale-[0.8] origin-left">{r.department}</span>
+                                      )}
+                                    </div>
                                     <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
                                       {r.workType}
                                       {r.scheduledAt && ` • PLANNED @ ${new Date(r.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
@@ -536,11 +558,18 @@ export default function MaintainerWorkflow({
                       {/* Divider */}
                       <div className="w-12 h-1 bg-singer-red rounded-full mb-6" />
 
-                      {/* Info Area */}
-                      <div className="space-y-2 text-center">
-                        <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">ID: {m.id}</div>
-                        <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter leading-tight" dangerouslySetInnerHTML={{ __html: m.name }} />
-                      </div>
+                        {/* Info Area */}
+                        <div className="space-y-2 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">ID: {m.id}</div>
+                            {machineReport && SUB_LOCATIONS.includes(machineReport.department) && (
+                              <div className="bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
+                                {machineReport.department}
+                              </div>
+                            )}
+                          </div>
+                          <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter leading-tight" dangerouslySetInnerHTML={{ __html: m.name }} />
+                        </div>
 
                       {/* Selection Indicator (Dot) */}
                       <div className={cn(
@@ -553,8 +582,39 @@ export default function MaintainerWorkflow({
               </motion.div>
             )}
 
+            {step === 3 && department === 'Other' && !selectedLocation && (
+              <motion.div 
+                key="location-step" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                className="space-y-12 max-w-4xl"
+              >
+                <header>
+                  <h1 className="text-6xl sm:text-8xl font-black text-slate-900 tracking-tighter leading-[0.8] mb-6 uppercase">LOCATION</h1>
+                  <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-xs">IDENTIFY OPERATIONAL ZONE FOR OTHER ASSETS</p>
+                </header>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    'AGRO FACTORY',
+                    'MODULOR FACTORY',
+                    'SOLID FACTORY',
+                    'SOFA FACTORY',
+                    'MAIN OFFICE',
+                    'WAREHOUSE'
+                  ].map((loc) => (
+                    <button
+                      key={loc}
+                      onClick={() => setSelectedLocation(loc)}
+                      className="group bg-white border-2 border-slate-200 rounded-[32px] p-8 flex items-center justify-between hover:border-slate-900 hover:shadow-xl transition-all"
+                    >
+                      <span className="text-xl font-black uppercase text-slate-800">{loc}</span>
+                      <ChevronRight size={20} className="text-slate-300 group-hover:text-singer-red transition-all" />
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             {/* Step 3: Work Type */}
-            {step === 3 && (
+            {step === 3 && (department !== 'Other' || selectedLocation) && (
               <motion.div 
                 key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
                 className="space-y-12 max-w-4xl"
@@ -562,10 +622,13 @@ export default function MaintainerWorkflow({
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 border-b-4 border-slate-900 pb-10">
                   <div>
                     <h1 className="text-6xl sm:text-8xl font-black text-slate-900 tracking-tighter leading-[0.8] mb-6 uppercase">WORK TYPE</h1>
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-xs">Node: <span dangerouslySetInnerHTML={{ __html: machine?.name || '' }} /> // Division: {department}</p>
+                    <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-xs">Node: <span dangerouslySetInnerHTML={{ __html: machine?.name || '' }} /> // Division: {selectedLocation || department}</p>
                   </div>
                   <button 
-                    onClick={() => setStep(2)} 
+                    onClick={() => {
+                        if (department === 'Other') setSelectedLocation(null);
+                        else setStep(2);
+                    }} 
                     className="flex items-center gap-2 bg-singer-red text-white font-black uppercase text-[10px] sm:text-xs tracking-widest px-8 py-3 rounded-xl hover:bg-slate-900 transition-all shadow-lg active:scale-95 transition-all"
                   >
                     <ArrowLeft size={16} /> BACK
@@ -610,24 +673,26 @@ export default function MaintainerWorkflow({
                     </div>
                   </button>
 
-                  <button
-                    onClick={() => { setWorkType('Break Down'); setStep(4); }}
-                    className={cn(
-                      "group p-8 sm:p-10 bg-white border-4 rounded-[40px] text-left transition-all flex flex-col gap-8",
-                      workType === 'Break Down' ? "border-singer-red shadow-2xl" : "border-slate-50 hover:border-singer-red hover:shadow-[30px_30px_60px_rgba(211,47,47,0.05)]"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-16 h-16 rounded-[20px] flex items-center justify-center text-white transition-all shadow-xl group-hover:scale-110",
-                      workType === 'Break Down' ? "bg-singer-red" : "bg-slate-900 group-hover:bg-singer-red"
-                    )}>
-                      <AlertTriangle size={32} />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl sm:text-3xl font-black text-slate-900 leading-none mb-2 uppercase tracking-tighter italic">BREAK DOWN</h3>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Critical Failure Response</p>
-                    </div>
-                  </button>
+                  {department !== 'Other' && (
+                    <button
+                      onClick={() => { setWorkType('Break Down'); setStep(4); }}
+                      className={cn(
+                        "group p-8 sm:p-10 bg-white border-4 rounded-[40px] text-left transition-all flex flex-col gap-8",
+                        workType === 'Break Down' ? "border-singer-red shadow-2xl" : "border-slate-50 hover:border-singer-red hover:shadow-[30px_30px_60px_rgba(211,47,47,0.05)]"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-16 h-16 rounded-[20px] flex items-center justify-center text-white transition-all shadow-xl group-hover:scale-110",
+                        workType === 'Break Down' ? "bg-singer-red" : "bg-slate-900 group-hover:bg-singer-red"
+                      )}>
+                        <AlertTriangle size={32} />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl sm:text-3xl font-black text-slate-900 leading-none mb-2 uppercase tracking-tighter italic">BREAK DOWN</h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Critical Failure Response</p>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
