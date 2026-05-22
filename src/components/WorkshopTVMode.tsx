@@ -54,7 +54,7 @@ function getSolidSection(machine: Machine): 'Main Solid' | 'Machine Section' | '
   return 'Main Solid';
 }
 
-// Safe Web Audio API synthesizer for an authentic industrial workshop alert chime
+// Safe Web Audio API synthesizer for an authentic industrial workshop alert chime pulse
 function playSirenSound() {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -62,34 +62,56 @@ function playSirenSound() {
     const ctx = new AudioCtx();
     
     const now = ctx.currentTime;
-    for (let i = 0; i < 8; i++) {
-      const time = now + i * 0.4;
-      
-      // Secondary tone
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sawtooth';
-      osc1.frequency.setValueAtTime(800, time);
-      osc1.frequency.linearRampToValueAtTime(1000, time + 0.15);
-      gain1.gain.setValueAtTime(0.15, time);
-      gain1.gain.exponentialRampToValueAtTime(0.01, time + 0.35);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(time);
-      osc1.stop(time + 0.38);
+    
+    // First high-contrast beep
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(850, now);
+    osc1.frequency.linearRampToValueAtTime(1050, now + 0.15);
+    gain1.gain.setValueAtTime(0.12, now);
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.38);
 
-      // Low harmonic
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(400, time);
-      gain2.gain.setValueAtTime(0.12, time);
-      gain2.gain.exponentialRampToValueAtTime(0.01, time + 0.35);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(time);
-      osc2.stop(time + 0.38);
-    }
+    // Low harmonic for rich depth
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(425, now);
+    gain2.gain.setValueAtTime(0.10, now);
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now);
+    osc2.stop(now + 0.38);
+
+    // Second overlapping beep 0.22s later for authentic double-pulse chime
+    const delayedTime = now + 0.22;
+    const osc1d = ctx.createOscillator();
+    const gain1d = ctx.createGain();
+    osc1d.type = 'sawtooth';
+    osc1d.frequency.setValueAtTime(850, delayedTime);
+    osc1d.frequency.linearRampToValueAtTime(1050, delayedTime + 0.15);
+    gain1d.gain.setValueAtTime(0.12, delayedTime);
+    gain1d.gain.exponentialRampToValueAtTime(0.01, delayedTime + 0.35);
+    osc1d.connect(gain1d);
+    gain1d.connect(ctx.destination);
+    osc1d.start(delayedTime);
+    osc1d.stop(delayedTime + 0.38);
+
+    const osc2d = ctx.createOscillator();
+    const gain2d = ctx.createGain();
+    osc2d.type = 'triangle';
+    osc2d.frequency.setValueAtTime(425, delayedTime);
+    gain2d.gain.setValueAtTime(0.10, delayedTime);
+    gain2d.gain.exponentialRampToValueAtTime(0.01, delayedTime + 0.35);
+    osc2d.connect(gain2d);
+    gain2d.connect(ctx.destination);
+    osc2d.start(delayedTime);
+    osc2d.stop(delayedTime + 0.38);
   } catch (err) {
     console.error("Sirens Web Audio failed:", err);
   }
@@ -145,9 +167,6 @@ export default function WorkshopTVMode({
     if (newlyAdded) {
       // Set to trigger center screen alert flash modal
       setActiveAlert(newlyAdded);
-      
-      // Auto play Web Audio alarm
-      playSirenSound();
 
       // Add to known IDs
       setKnownReportIds(prev => {
@@ -179,6 +198,29 @@ export default function WorkshopTVMode({
       });
     }
   }, [reports, knownReportIds]);
+
+  // Audio alarm playback control hook: Play alert for exactly 10 seconds total and stop if dismissed
+  useEffect(() => {
+    if (!activeAlert) return;
+
+    // Play immediate chime
+    playSirenSound();
+
+    // Trigger repeating pulse every 1.5 seconds
+    const intervalId = window.setInterval(() => {
+      playSirenSound();
+    }, 1500);
+
+    // Stop alarm sound after exactly 10 seconds
+    const stopAudioTimeout = window.setTimeout(() => {
+      window.clearInterval(intervalId);
+    }, 10000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.clearTimeout(stopAudioTimeout);
+    };
+  }, [activeAlert]);
 
   // Clean up timers on unmount
   useEffect(() => {
@@ -1084,22 +1126,56 @@ export default function WorkshopTVMode({
 
                 {/* Machine Description */}
                 <div className="flex-1 space-y-4">
-                  <div>
-                    <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">WORKSTATION / LINE</span>
-                    <h3 className="text-xl font-black italic tracking-tight uppercase text-white leading-tight mt-1">
-                      {activeAlert.machineName.replace(/<br\s*\/?>/gi, ' ')}
-                    </h3>
-                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-1.5">
-                      DEPARTMENT DIVISION: {activeAlert.department.toUpperCase()}
-                    </p>
-                  </div>
+                  {(() => {
+                    const mach = machines.find(m => m.id === activeAlert.machineId);
+                    const sectionName = mach ? getSolidSection(mach) : 'Main Solid';
+                    
+                    const priorityLabel = 
+                      activeAlert.workType === 'Break Down' ? 'CRITICAL (PRIORITY 1) - SYSTEM STOPPAGE' :
+                      activeAlert.workType === 'Repair' ? 'URGENT (PRIORITY 2) - SYMPTOM REPAIR' :
+                      'ROUTINE (PRIORITY 3) - PREVENTATIVE HEALTH AUDIT';
 
-                  <div className="p-4 rounded-xl bg-slate-900 border border-slate-900">
-                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">REPORTED TROUBLESHOOTING LOG</span>
-                    <p className="text-slate-200 font-bold uppercase text-xs sm:text-sm leading-relaxed italic">
-                      "{activeAlert.description || 'No descriptive comments logged.'}"
-                    </p>
-                  </div>
+                    const priorityColor = 
+                      activeAlert.workType === 'Break Down' ? 'text-red-500 bg-red-500/10 border-red-500/20' :
+                      activeAlert.workType === 'Repair' ? 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20' :
+                      'text-blue-500 bg-blue-500/10 border-blue-500/20';
+
+                    return (
+                      <>
+                        <div>
+                          <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">WORKSTATION / LINE</span>
+                          <h3 className="text-xl font-black italic tracking-tight uppercase text-white leading-tight mt-1">
+                            {activeAlert.machineName.replace(/<br\s*\/?>/gi, ' ')}
+                          </h3>
+                          
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <span className="text-[10px] font-extrabold text-slate-300 uppercase tracking-wider">
+                              SECTION: {sectionName.toUpperCase()}
+                            </span>
+                            <span className="text-slate-700 font-bold">•</span>
+                            <span className="text-[10px] font-extrabold text-slate-300 uppercase tracking-wider">
+                              LOCATION: {activeAlert.department.toUpperCase()}
+                            </span>
+                          </div>
+
+                          <div className="mt-3.5">
+                            <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1.5">PRIORITY STATUS</span>
+                            <div className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider", priorityColor)}>
+                              <span className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" />
+                              {priorityLabel}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-slate-900 border border-slate-900">
+                          <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-sans">ISSUE DETAILS & TROUBLESHOOTING LOG</span>
+                          <p className="text-slate-200 font-bold uppercase text-xs sm:text-sm leading-relaxed italic">
+                            "{activeAlert.description || 'No descriptive comments logged.'}"
+                          </p>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
               </div>

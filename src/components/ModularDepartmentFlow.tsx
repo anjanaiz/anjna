@@ -479,14 +479,7 @@ export default function ModularFactoryFlow({
                 </div>
 
                 <div className="p-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    'AGRO FACTORY',
-                    'MODULAR FACTORY',
-                    'SOLID FACTORY',
-                    'SOFA FACTORY',
-                    'MAIN OFFICE',
-                    'WAREHOUSE'
-                  ].map((loc) => (
+                  {SUB_LOCATIONS.map((loc) => (
                     <button
                       key={loc}
                       onClick={() => handleLocationSelect(loc)}

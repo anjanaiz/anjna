@@ -784,14 +784,7 @@ export default function MaintainerWorkflow({
                   <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-xs">IDENTIFY OPERATIONAL ZONE FOR OTHER ASSETS</p>
                 </header>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    'AGRO FACTORY',
-                    'MODULAR FACTORY',
-                    'SOLID FACTORY',
-                    'SOFA FACTORY',
-                    'MAIN OFFICE',
-                    'WAREHOUSE'
-                  ].map((loc) => (
+                  {SUB_LOCATIONS.map((loc) => (
                     <button
                       key={loc}
                       onClick={() => setSelectedLocation(loc)}
