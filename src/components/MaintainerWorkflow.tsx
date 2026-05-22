@@ -29,7 +29,10 @@ import {
   Languages,
   Loader2,
   Calendar,
-  LogOut
+  LogOut,
+  Hammer,
+  Cog,
+  Paintbrush
 } from 'lucide-react';
 import { cn, formatTime } from '../lib/utils';
 import { format } from 'date-fns';
@@ -37,6 +40,34 @@ import { translateToEnglish } from '../services/geminiService';
 import AnalogTimePicker from './AnalogTimePicker';
 import NotificationTray from './NotificationTray';
 import AITranslationTool from './AITranslationTool';
+
+function getSolidSection(machine: Machine): 'Main Solid' | 'Machine Section' | 'Paint Section' {
+  const name = machine.name.toUpperCase();
+  
+  if (
+    name.includes('CROSS CUTTER 3') || 
+    name.includes('CROSS CUTTER 4') || 
+    name.includes('CROSS CUTTER 5') || 
+    name.includes('MULTI RIP SAW') || 
+    name.includes('RIP SAW (MULTI)') || 
+    name.includes('TWO SIDE PLANNER NEW') || 
+    name.includes('TWO SIDE PLANNER OLD')
+  ) {
+    return 'Machine Section';
+  }
+  
+  if (
+    name.includes('CURTAINE COATER') ||
+    name.includes('DIGITAL WEIGHT') ||
+    name.includes('OVEN') ||
+    name.includes('PAINT BOOTH') ||
+    name.includes('PAINT MACHINE')
+  ) {
+    return 'Paint Section';
+  }
+  
+  return 'Main Solid';
+}
 
 export default function MaintainerWorkflow({ 
   user, 
@@ -61,6 +92,7 @@ export default function MaintainerWorkflow({
 }) {
   const [step, setStep] = useState(1);
   const [department, setDepartment] = useState<Factory | null>(null);
+  const [selectedSolidSection, setSelectedSolidSection] = useState<'Main Solid' | 'Machine Section' | 'Paint Section' | null>(null);
   const [machine, setMachine] = useState<Machine | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [workType, setWorkType] = useState<WorkType | null>(null);
@@ -83,15 +115,40 @@ export default function MaintainerWorkflow({
       return 4;
     };
 
-    return machines
-      .filter(m => m.department === department)
-      .sort((a, b) => {
-        const priorityA = getPriority(a);
-        const priorityB = getPriority(b);
-        if (priorityA !== priorityB) return priorityA - priorityB;
-        return a.name.localeCompare(b.name);
-      });
-  }, [machines, department, reports]);
+    let base = machines.filter(m => m.department === department);
+
+    if (department === 'Solid' && selectedSolidSection) {
+      base = base.filter(m => getSolidSection(m) === selectedSolidSection);
+    }
+
+    return base.sort((a, b) => {
+      const priorityA = getPriority(a);
+      const priorityB = getPriority(b);
+      if (priorityA !== priorityB) return priorityA - priorityB;
+      return a.name.localeCompare(b.name);
+    });
+  }, [machines, department, reports, selectedSolidSection]);
+
+  const countForSection = (sec: 'Main Solid' | 'Machine Section' | 'Paint Section') => {
+    return machines.filter(m => m.department === 'Solid' && getSolidSection(m) === sec).length;
+  };
+
+  const alertsForSection = (sec: 'Main Solid' | 'Machine Section' | 'Paint Section') => {
+    return reports.filter(r => {
+      if (r.status !== 'pending') return false;
+      const m = machines.find(mach => mach.id === r.machineId);
+      return m && m.department === 'Solid' && getSolidSection(m) === sec;
+    }).length;
+  };
+
+  // Initialize times for manual entry
+  useEffect(() => {
+    if (step === 4 && timeType === 'Previous' && !startTime) {
+      const now = new Date();
+      setStartTime(now.toISOString());
+      setFinishTime(now.toISOString());
+    }
+  }, [step, timeType, startTime]);
 
   const pendingReportForMachine = useMemo(() => {
     if (!machine) return null;
@@ -163,6 +220,7 @@ export default function MaintainerWorkflow({
   const resetFlow = () => {
     setStep(1);
     setDepartment(null);
+    setSelectedSolidSection(null);
     setMachine(null);
     setSelectedLocation(null);
     setWorkType(null);
@@ -364,6 +422,8 @@ export default function MaintainerWorkflow({
           onClick={step === 1 ? onLogout : () => {
             if (step === 3 && department === 'Other' && selectedLocation) {
               setSelectedLocation(null);
+            } else if (step === 2 && department === 'Solid' && selectedSolidSection) {
+              setSelectedSolidSection(null);
             } else {
               setStep(step - 1);
             }
@@ -379,6 +439,8 @@ export default function MaintainerWorkflow({
             onClick={step === 1 ? onLogout : () => {
               if (step === 3 && department === 'Other' && selectedLocation) {
                 setSelectedLocation(null);
+              } else if (step === 2 && department === 'Solid' && selectedSolidSection) {
+                setSelectedSolidSection(null);
               } else {
                 setStep(step - 1);
               }
@@ -439,7 +501,7 @@ export default function MaintainerWorkflow({
                         </div>
                         <div className="relative z-10 w-full">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block group-hover:text-singer-red transition-colors">Sector ID: 00{FACTORIES.indexOf(dept) + 1}</span>
-                          <span className="text-2xl sm:text-3xl font-black uppercase text-slate-800 tracking-tighter group-hover:text-slate-900">{dept} Factory</span>
+                          <span className="text-2xl sm:text-3xl font-black uppercase text-slate-800 tracking-tighter group-hover:text-slate-900">{dept === 'Other' ? dept : dept + ' Factory'}</span>
                         </div>
 
                         {/* Pending Tasks Section */}
@@ -457,9 +519,9 @@ export default function MaintainerWorkflow({
                                   <div className="flex flex-col min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
                                       <span className="text-[10px] font-black text-slate-900 truncate uppercase" dangerouslySetInnerHTML={{ __html: r.machineName.replace(/<br\s*\/?>/gi, ' ') }} />
-                                      {SUB_LOCATIONS.includes(r.department) && (
-                                        <span className="bg-singer-red text-[8px] text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest scale-[0.8] origin-left">{r.department}</span>
-                                      )}
+                                      <span className="bg-red-600 text-[8px] text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest scale-[0.8] origin-left">
+                                        {r.department === 'Other' ? 'OTHER' : (r.department.includes('FACTORY') ? r.department.replace(' FACTORY', '') : r.department)}
+                                      </span>
                                     </div>
                                     <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
                                       {r.workType}
@@ -487,98 +549,217 @@ export default function MaintainerWorkflow({
             {/* Step 2: Machine Selection */}
             {step === 2 && (
               <motion.div 
-                key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                key={department === 'Solid' && selectedSolidSection === null ? "step2-solid" : "step2-machines"}
+                initial={{ opacity: 0, x: 20 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                exit={{ opacity: 0, x: -20 }}
                 className="space-y-8 sm:space-y-12 max-w-6xl"
               >
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 border-b-4 border-slate-900 pb-10">
                   <div>
-                    <h1 className="text-5xl sm:text-7xl font-black text-slate-900 tracking-tighter leading-[0.8] mb-6 uppercase flex flex-col">
-                      <span>IDENTIFY</span>
-                      <span className="text-singer-red">MACHINE</span>
-                    </h1>
-                    <div className="flex gap-4 items-center">
-                      <div className="px-4 py-1 bg-slate-900 text-white rounded text-[10px] font-black uppercase tracking-widest">{department} Division</div>
-                      <p className="text-slate-300 font-bold uppercase tracking-[0.2em] text-[10px]">Filter: Sub-system nodes</p>
+                    {department === 'Solid' && selectedSolidSection === null ? (
+                      <h1 className="text-5xl sm:text-7xl font-black text-slate-900 tracking-tighter leading-[0.8] mb-6 uppercase flex flex-col">
+                        <span>SELECT</span>
+                        <span className="text-singer-red">SECTOR</span>
+                      </h1>
+                    ) : (
+                      <h1 className="text-5xl sm:text-7xl font-black text-slate-900 tracking-tighter leading-[0.8] mb-6 uppercase flex flex-col">
+                        <span>IDENTIFY</span>
+                        <span className="text-singer-red">MACHINE</span>
+                      </h1>
+                    )}
+                    <div className="flex gap-4 items-center flex-wrap">
+                      {department === 'Solid' && selectedSolidSection ? (
+                        <div className="flex items-center gap-1.5 px-4 py-1 bg-slate-900 text-white rounded text-[10px] font-black uppercase tracking-widest">
+                          <span>{department} Division</span>
+                          <span className="text-slate-400 font-normal">/</span>
+                          <span className="inline-flex items-center gap-1 text-slate-300">
+                            {selectedSolidSection === 'Main Solid' ? (
+                              <Hammer size={10} className="text-emerald-400 animate-pulse" />
+                            ) : selectedSolidSection === 'Machine Section' ? (
+                              <Cog size={10} className="text-indigo-400 animate-spin" style={{ animationDuration: '4s' }} />
+                            ) : (
+                              <Paintbrush size={10} className="text-amber-400" />
+                            )}
+                            {selectedSolidSection}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="px-4 py-1 bg-slate-900 text-white rounded text-[10px] font-black uppercase tracking-widest">{department} Division</div>
+                      )}
+                      
+                      {department === 'Solid' && selectedSolidSection === null ? (
+                        <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">AUTHORIZED SECTOR ENTRY DIRECTIVE</p>
+                      ) : (
+                        <p className="text-slate-300 font-bold uppercase tracking-[0.2em] text-[10px]">Filter: Sub-system nodes</p>
+                      )}
                     </div>
                   </div>
                   <button 
-                    onClick={() => setStep(1)} 
+                    onClick={() => {
+                      if (department === 'Solid' && selectedSolidSection) {
+                        setSelectedSolidSection(null);
+                      } else {
+                        setStep(1);
+                      }
+                    }} 
                     className="flex items-center gap-2 bg-singer-red text-white font-black uppercase text-[10px] sm:text-xs tracking-widest px-8 py-3 rounded-xl hover:bg-slate-900 transition-all shadow-lg active:scale-95 transition-all"
                   >
                     <ArrowLeft size={16} /> BACK
                   </button>
                 </header>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {machinesInDept.map((m) => {
-                    const machineReport = reports.find(r => r.machineId === m.id && r.status === 'pending');
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => { setMachine(m); setStep(3); }}
-                        className={cn(
-                          "group bg-white rounded-[40px] p-10 flex flex-col items-center transition-all duration-300 relative border-2",
-                          machine?.id === m.id 
-                            ? "border-singer-red shadow-[0_20px_50px_rgba(211,47,47,0.15)] scale-[1.02]" 
-                            : "border-transparent shadow-[0_15px_40px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-1 hover:border-slate-100"
-                        )}
-                      >
-                        {/* Status Badge */}
-                        {machineReport && (
-                          <div className="absolute top-6 left-6 z-20 flex flex-col items-start gap-1">
-                            <div className="flex items-center gap-2 bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-singer-red/20 animate-pulse">
-                              <AlertCircle size={10} /> {machineReport.workType}
+                {department === 'Solid' && selectedSolidSection === null ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[
+                      {
+                        id: 'Main Solid' as const,
+                        name: 'Main Solid',
+                        tagline: 'WOOD ASSEMBLY & CORE PROCESS',
+                        desc: 'Spindle moulders, borer, bandsaw machines, and core wooden processes.',
+                        color: 'bg-emerald-600',
+                        icon: Hammer,
+                      },
+                      {
+                        id: 'Machine Section' as const,
+                        name: 'Machine Section',
+                        tagline: 'HEAVY FORMATTING & CUTTING',
+                        desc: 'Heavy cutting machines, rip saws, planner units, and cross cutters.',
+                        color: 'bg-indigo-600',
+                        icon: Cog,
+                      },
+                      {
+                        id: 'Paint Section' as const,
+                        name: 'Paint Section',
+                        tagline: 'PREMIUM COATING & OVEN SYSTEMS',
+                        desc: 'Oven drying systems, spray booths, and specialized exterior paint machinery.',
+                        color: 'bg-amber-600',
+                        icon: Paintbrush,
+                      }
+                    ].map((sec) => {
+                      const mCount = countForSection(sec.id);
+                      const aCount = alertsForSection(sec.id);
+                      return (
+                        <button
+                          key={sec.id}
+                          onClick={() => setSelectedSolidSection(sec.id)}
+                          className="group relative bg-white border-2 border-slate-200 rounded-[32px] p-8 flex flex-col items-start text-left gap-6 hover:border-slate-900 hover:shadow-[30px_30px_60px_rgba(0,0,0,0.05)] transition-all hover:-translate-y-1 overflow-hidden animate-pulse-[dur:3s]"
+                        >
+                          <div className="absolute top-0 right-0 p-8 text-slate-100/50 text-6xl font-black opacity-0 group-hover:opacity-100 transition-opacity select-none italic pointer-events-none">
+                            {sec.name.charAt(0)}
+                          </div>
+
+                          <div className={cn(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-inner relative z-10 transition-transform group-hover:scale-110",
+                            sec.color
+                          )}>
+                            <sec.icon className="w-5 h-5" />
+                            {aCount > 0 && (
+                              <div className="absolute -top-2 -right-2 w-6 h-6 bg-singer-red rounded-full flex items-center justify-center text-[9px] font-black border-4 border-white shadow-lg animate-bounce text-white">
+                                {aCount}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="relative z-10 space-y-2 w-full">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-singer-red transition-colors">
+                                {sec.tagline}
+                              </div>
                             </div>
-                            {machineReport.scheduledAt && (
-                              <div className="bg-amber-500 text-slate-900 text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-amber-500/20">
-                                {new Date(machineReport.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            <h3 className="text-xl font-black uppercase text-slate-800 tracking-tighter group-hover:text-slate-950 border-b-2 border-slate-50 pb-2 mb-2">
+                              {sec.name}
+                            </h3>
+                            <p className="text-[11px] font-medium text-slate-400 leading-relaxed min-h-[48px]">
+                              {sec.desc}
+                            </p>
+                            
+                            <div className="flex items-center justify-between pt-4 border-t border-slate-50 w-full text-[9px] font-black uppercase tracking-wider">
+                              <span className="text-slate-400">
+                                {mCount} Machine{mCount !== 1 ? 's' : ''}
+                              </span>
+                              <span className="text-slate-900 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                                Access <ChevronRight size={12} />
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {machinesInDept.map((m) => {
+                      const machineReport = reports.find(r => r.machineId === m.id && r.status === 'pending');
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => { setMachine(m); setStep(3); }}
+                          className={cn(
+                            "group bg-white rounded-[40px] p-10 flex flex-col items-center transition-all duration-300 relative border-2",
+                            machine?.id === m.id 
+                              ? "border-singer-red shadow-[0_20px_50px_rgba(211,47,47,0.15)] scale-[1.02]" 
+                              : "border-transparent shadow-[0_15px_40px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-1 hover:border-slate-100"
+                          )}
+                        >
+                          {/* Status Badge */}
+                          {machineReport && (
+                            <div className="absolute top-6 left-6 z-20 flex flex-col items-start gap-1">
+                              <div className="flex items-center gap-2 bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-singer-red/20 animate-pulse">
+                                <AlertCircle size={10} /> {machineReport.workType}
+                              </div>
+                              {machineReport.scheduledAt && (
+                                <div className="bg-amber-500 text-slate-900 text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-amber-500/20">
+                                  {new Date(machineReport.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Image/Icon Area */}
+                          <div className="relative w-full aspect-video flex items-center justify-center mb-8 bg-slate-50 rounded-[24px] overflow-hidden group-hover:bg-singer-red transition-colors shadow-inner">
+                            {m.image ? (
+                              <img 
+                                src={m.image} 
+                                alt={m.name} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                referrerPolicy="no-referrer" 
+                              />
+                            ) : (
+                              <div className="w-20 h-20 bg-singer-red rounded-full flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                                <Settings size={40} className="text-white group-hover:rotate-90 transition-transform duration-700" />
                               </div>
                             )}
+                            
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
-                        )}
 
-                        {/* Image/Icon Area */}
-                      <div className="relative w-full aspect-video flex items-center justify-center mb-8 bg-slate-50 rounded-[24px] overflow-hidden group-hover:bg-singer-red transition-colors shadow-inner">
-                        {m.image ? (
-                          <img 
-                            src={m.image} 
-                            alt={m.name} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                            referrerPolicy="no-referrer" 
-                          />
-                        ) : (
-                          <div className="w-20 h-20 bg-singer-red rounded-full flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                            <Settings size={40} className="text-white group-hover:rotate-90 transition-transform duration-700" />
+                          {/* Divider */}
+                          <div className="w-12 h-1 bg-singer-red rounded-full mb-6" />
+
+                          {/* Info Area */}
+                          <div className="space-y-2 text-center">
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">ID: {m.id}</div>
+                              {machineReport && SUB_LOCATIONS.includes(machineReport.department) && (
+                                <div className="bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
+                                  {machineReport.department}
+                                </div>
+                              )}
+                            </div>
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter leading-tight" dangerouslySetInnerHTML={{ __html: m.name }} />
                           </div>
-                        )}
-                        
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
 
-                      {/* Divider */}
-                      <div className="w-12 h-1 bg-singer-red rounded-full mb-6" />
-
-                        {/* Info Area */}
-                        <div className="space-y-2 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">ID: {m.id}</div>
-                            {machineReport && SUB_LOCATIONS.includes(machineReport.department) && (
-                              <div className="bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
-                                {machineReport.department}
-                              </div>
-                            )}
-                          </div>
-                          <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter leading-tight" dangerouslySetInnerHTML={{ __html: m.name }} />
-                        </div>
-
-                      {/* Selection Indicator (Dot) */}
-                      <div className={cn(
-                        "absolute top-6 right-6 w-3 h-3 rounded-full transition-all duration-300",
-                        machine?.id === m.id ? "bg-singer-red scale-100" : "bg-slate-100 scale-50 opacity-0"
-                      )} />
-                    </button>
-                  ); })}
-                </div>
+                          {/* Selection Indicator (Dot) */}
+                          <div className={cn(
+                            "absolute top-6 right-6 w-3 h-3 rounded-full transition-all duration-300",
+                            machine?.id === m.id ? "bg-singer-red scale-100" : "bg-slate-100 scale-50 opacity-0"
+                          )} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -594,7 +775,7 @@ export default function MaintainerWorkflow({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
                     'AGRO FACTORY',
-                    'MODULOR FACTORY',
+                    'MODULAR FACTORY',
                     'SOLID FACTORY',
                     'SOFA FACTORY',
                     'MAIN OFFICE',

@@ -7,7 +7,7 @@ export interface User {
 }
 
 export type Factory = 'Agro' | 'Modular' | 'Solid' | 'Sofa' | 'Other';
-export type SubLocation = 'AGRO FACTORY' | 'MODULOR FACTORY' | 'SOLID FACTORY' | 'SOFA FACTORY' | 'MAIN OFFICE' | 'WAREHOUSE';
+export type SubLocation = 'AGRO FACTORY' | 'MODULAR FACTORY' | 'SOLID FACTORY' | 'SOFA FACTORY' | 'MAIN OFFICE' | 'WAREHOUSE';
 export type Department = Factory | SubLocation;
 
 export interface Machine {

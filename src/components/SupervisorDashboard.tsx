@@ -385,7 +385,7 @@ export default function SupervisorDashboard({
                   <div key={dept} className="space-y-6">
                     <div className="flex items-center gap-4">
                       <div className="h-px flex-1 bg-slate-200" />
-                      <h2 className="text-2xl font-black text-slate-400 uppercase tracking-[0.2em]">{dept} Factory</h2>
+                      <h2 className="text-2xl font-black text-slate-400 uppercase tracking-[0.2em]">{dept === 'Other' ? dept : dept + ' Factory'}</h2>
                       <div className="h-px flex-1 bg-slate-200" />
                     </div>
                     
@@ -984,7 +984,7 @@ export default function SupervisorDashboard({
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Scope</p>
                       <h3 className="text-xl font-black uppercase tracking-tighter italic leading-tight">
                         {selectedAnalysisMachineId === 'all' 
-                          ? `${selectedAnalysisDept} Factory (All)`
+                          ? `${selectedAnalysisDept === 'Other' ? selectedAnalysisDept : selectedAnalysisDept + ' Factory'} (All)`
                           : machines.find(m => m.id === selectedAnalysisMachineId)?.name.replace(/<br\s*\/?>/gi, ' ')}
                       </h3>
                     </div>

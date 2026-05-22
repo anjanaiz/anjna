@@ -9,20 +9,20 @@ interface MachineNode extends Machine {
 }
 
 const MODULAR_LAYOUT: Record<string, { x: number; y: number }> = {
-  'm1': { x: 15, y: 15 },    // BEAM SAW SCM
-  'm2': { x: 15, y: 32 },    // BEAM SAW SELCO
-  'm4': { x: 48, y: 14 },    // EDGE BAND OLD JADE (Top row)
-  'm3': { x: 48, y: 28 },    // EDGE BAND NEW JADE (Bottom row)
-  'm5': { x: 74, y: 18 },    // SKIPPER 100
-  'm9': { x: 19, y: 56 },    // PROFILE EDGE BANDING
-  'm14': { x: 7, y: 65 },    // HINGE DRILLING
-  'm13': { x: 7, y: 77 },    // GROOVING CUTTING
-  'm10': { x: 40, y: 74 },   // RAIL BORER
-  'm11': { x: 51, y: 74 },   // DOWEL MILLING
-  'm12': { x: 61, y: 74 },   // MANUAL EDGE BANDER
-  'm7': { x: 79, y: 51 },    // ROVER GOLD NEW
-  'm6': { x: 79, y: 64 },    // ROVER GOLD OLD
-  'm8': { x: 79, y: 77 },    // ROVER 22
+  'xrho4kkgs': { x: 15, y: 15 },    // BEAM SAW SCM
+  'tto2ztppb': { x: 15, y: 32 },    // BEAM SAW SELCO
+  'vfpfzbsc6': { x: 48, y: 14 },    // EDGE BAND OLD JADE (Top row)
+  'm70zi93ar': { x: 48, y: 28 },    // EDGE BAND NEW JADE (Bottom row)
+  'sp9nvciik': { x: 74, y: 18 },    // SKIPPER 100
+  '1b0eh4p4a': { x: 19, y: 56 },    // PROFILE EDGE BANDING
+  'p6acbc2ru': { x: 7, y: 65 },     // HINGE DRILLING
+  'clg5d4bt2': { x: 7, y: 77 },     // GROOVING CUTTING
+  'owoy5b835': { x: 40, y: 74 },    // RAIL BORER
+  'jfq16inm5': { x: 51, y: 74 },    // DOWEL MILLING
+  '5j0898k83': { x: 61, y: 74 },    // MANUAL EDGE BANDER
+  '1rxaelkla': { x: 79, y: 51 },    // ROVER GOLD NEW
+  'u10s9yllm': { x: 79, y: 64 },    // ROVER GOLD OLD
+  'ss2oknf13': { x: 79, y: 77 },    // ROVER 22
 };
 
 interface ModularMapProps {

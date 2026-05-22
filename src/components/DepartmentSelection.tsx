@@ -32,7 +32,7 @@ export default function FactorySelection({
     { id: 'Modular', name: 'Modular Factory', icon: Layers, color: 'bg-slate-900', tagline: 'Build Particle Board Furniture' },
     { id: 'Solid', name: 'Solid Factory', icon: TreeDeciduous, color: 'bg-slate-900', tagline: 'Build Wood Furniture' },
     { id: 'Sofa', name: 'Sofa Factory', icon: Sofa, color: 'bg-slate-900', tagline: 'Build Sofa' },
-    { id: 'Other', name: 'Other Factory', icon: Wind, color: 'bg-slate-900', tagline: 'Misc Operations' },
+    { id: 'Other', name: 'OTHER', icon: Wind, color: 'bg-slate-900', tagline: 'Misc Operations' },
   ];
 
   const getMachinesForDept = (deptId: string) => {
