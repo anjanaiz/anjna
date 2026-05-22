@@ -384,13 +384,14 @@ export default function WorkshopTVMode({
   const previewItems = (() => {
     if (rotationLength <= 1) return [];
     
-    const items: Array<{ id: string; name: string; info: string; isUrgent?: boolean; isPending?: boolean; isInProgress?: boolean }> = [];
+    const items: Array<{ id: string; name: string; info: string; isUrgent?: boolean; isService?: boolean; isRepair?: boolean; isInProgress?: boolean }> = [];
     for (let i = 1; i <= Math.min(4, rotationLength - 1); i++) {
       const idx = (activeIndex + i) % rotationLength;
       if (hasJobs) {
         const report = sortedReports[idx];
         const isUrgent = report.status === 'pending' && report.workType === 'Break Down';
-        const isPending = report.status === 'pending' && report.workType !== 'Break Down';
+        const isService = report.status === 'pending' && report.workType === 'Service';
+        const isRepair = report.status === 'pending' && report.workType === 'Repair';
         const isInProgress = report.status === 'in-progress';
         
         items.push({
@@ -398,7 +399,8 @@ export default function WorkshopTVMode({
           name: report.machineName.replace(/<br\s*\/?>/gi, ' '),
           info: report.workType.toUpperCase(),
           isUrgent,
-          isPending,
+          isService,
+          isRepair,
           isInProgress
         });
       } else {
@@ -418,7 +420,8 @@ export default function WorkshopTVMode({
     if (hasJobs && currentItem) {
       const job = currentItem as MachineReport;
       const isUrgent = job.status === 'pending' && job.workType === 'Break Down';
-      const isPending = job.status === 'pending' && job.workType !== 'Break Down';
+      const isService = job.status === 'pending' && job.workType === 'Service';
+      const isRepair = job.status === 'pending' && job.workType === 'Repair';
       const isInProgress = job.status === 'in-progress';
 
       if (isUrgent) {
@@ -432,24 +435,46 @@ export default function WorkshopTVMode({
           statusTheme: "RED",
           accentLine: "bg-red-600"
         };
-      } else if (isPending) {
+      } else if (isService) {
         return {
-          title: "MAINTENANCE PENDING",
-          subtitle: "Logged & Awaiting Repair Assignment",
-          themeColor: "text-amber-400",
-          bgColor: "bg-amber-950/20",
-          glowColor: "shadow-[0_0_50px_rgba(245,158,11,0.25)] border-amber-700/50",
-          iconBg: "bg-amber-500",
+          title: "SERVICE WORK PENDING",
+          subtitle: "Preventative Health Audit Scheduled & Pending",
+          themeColor: "text-blue-500",
+          bgColor: "bg-blue-950/20",
+          glowColor: "shadow-[0_0_50px_rgba(59,130,246,0.3)] border-blue-700/60",
+          iconBg: "bg-blue-500",
+          statusTheme: "BLUE",
+          accentLine: "bg-blue-600"
+        };
+      } else if (isRepair) {
+        return {
+          title: "REPAIR WORK PENDING",
+          subtitle: "Symptom Correction Registered & Pending",
+          themeColor: "text-yellow-400",
+          bgColor: "bg-yellow-950/20",
+          glowColor: "shadow-[0_0_50px_rgba(234,179,8,0.25)] border-yellow-700/50",
+          iconBg: "bg-yellow-500",
           statusTheme: "YELLOW",
-          accentLine: "bg-amber-500"
+          accentLine: "bg-yellow-500"
+        };
+      } else if (isInProgress) {
+        return {
+          title: "REPAIR IN PROGRESS",
+          subtitle: "Technician Currently Addressing Workstation",
+          themeColor: "text-orange-400",
+          bgColor: "bg-orange-950/20",
+          glowColor: "shadow-[0_0_50px_rgba(249,115,22,0.25)] border-orange-700/50",
+          iconBg: "bg-orange-500",
+          statusTheme: "ORANGE",
+          accentLine: "bg-orange-500"
         };
       } else {
         return {
-          title: "REPAIR IN PROGRESS",
-          subtitle: "Technician Currently Addresssing workstation",
+          title: "COMPLETED",
+          subtitle: "Maintenance Complete & Audited",
           themeColor: "text-emerald-400",
-          bgColor: "bg-emerald-900/20",
-          glowColor: "shadow-[0_0_50px_rgba(16,185,129,0.25)] border-emerald-700/50",
+          bgColor: "bg-emerald-950/15",
+          glowColor: "shadow-[0_0_40px_rgba(16,185,129,0.15)] border-slate-900",
           iconBg: "bg-emerald-500",
           statusTheme: "GREEN",
           accentLine: "bg-emerald-500"
@@ -842,7 +867,8 @@ export default function WorkshopTVMode({
                   sortedReports.map((report, idx) => {
                     const mach = machines.find(m => m.id === report.machineId);
                     const isUrgent = report.status === 'pending' && report.workType === 'Break Down';
-                    const isPending = report.status === 'pending' && report.workType !== 'Break Down';
+                    const isService = report.status === 'pending' && report.workType === 'Service';
+                    const isRepair = report.status === 'pending' && report.workType === 'Repair';
                     const isInProgress = report.status === 'in-progress';
                     const elapsed = getElapsedDuration(report.createdAt, systemTime);
                     const sectionName = mach ? getSolidSection(mach) : 'Line Unit';
@@ -854,18 +880,29 @@ export default function WorkshopTVMode({
                         className={cn(
                           "w-full text-left p-3.5 rounded-2xl flex gap-3 border relative overflow-hidden transition-all duration-205 cursor-pointer hover:bg-slate-900/35 hover:scale-[1.01] active:scale-[0.98]",
                           activeIndex === idx 
-                            ? "bg-slate-900 border-[#d32f2f]/80 ring-1 ring-[#d32f2f]/40"
+                            ? isUrgent 
+                              ? "bg-slate-900 border-[#d32f2f] ring-1 ring-[#d32f2f]/40"
+                              : isService
+                                ? "bg-slate-900 border-blue-500 ring-1 ring-blue-500/40"
+                                : isRepair
+                                  ? "bg-slate-900 border-yellow-500 ring-1 ring-yellow-500/40"
+                                  : "bg-slate-900 border-orange-500 ring-1 ring-orange-500/40"
                             : isUrgent 
                               ? "bg-red-950/10 border-red-950/40 hover:border-red-900/65" 
-                              : isPending 
-                                ? "bg-amber-950/10 border-amber-950/40 hover:border-amber-900/65"
-                                : "bg-emerald-950/10 border-emerald-950/40 hover:border-emerald-900/65"
+                              : isService
+                                ? "bg-blue-950/10 border-blue-950/40 hover:border-blue-900/65"
+                                : isRepair
+                                  ? "bg-yellow-950/10 border-yellow-950/40 hover:border-yellow-900/65"
+                                  : "bg-orange-950/10 border-orange-950/40 hover:border-orange-900/65"
                         )}
                       >
                         {/* Highlight edge color vertical rail */}
                         <div className={cn(
                           "absolute left-0 top-0 bottom-0 w-1.5",
-                          isUrgent ? "bg-[#d32f2f] animate-pulse" : isPending ? "bg-amber-500" : "bg-emerald-500"
+                          isUrgent ? "bg-[#d32f2f] animate-pulse" :
+                          isService ? "bg-blue-500" :
+                          isRepair ? "bg-yellow-500" :
+                          "bg-orange-500"
                         )} />
 
                         {/* Machine Image (avatar) */}
@@ -893,17 +930,24 @@ export default function WorkshopTVMode({
                               "shrink-0 font-mono text-[7px] font-black px-1.5 py-0.5 rounded uppercase border leading-none",
                               isUrgent 
                                 ? "text-red-500 bg-red-950/50 border-red-500/30" 
-                                : isPending 
-                                  ? "text-amber-400 bg-amber-950/50 border-amber-500/30"
-                                  : "text-emerald-400 bg-emerald-950/50 border-emerald-500/30"
+                                : isService
+                                  ? "text-blue-400 bg-blue-950/50 border-blue-500/30"
+                                  : isRepair
+                                    ? "text-yellow-400 bg-yellow-950/50 border-yellow-500/30"
+                                    : "text-orange-400 bg-orange-950/50 border-orange-500/30"
                             )}>
-                              {isUrgent ? 'URGENT' : isPending ? 'PENDING' : 'ACTIVE'}
+                              {isUrgent ? 'URGENT' : isService ? 'SERVICE PENDING' : isRepair ? 'REPAIR PENDING' : 'IN PROGRESS'}
                             </span>
                           </div>
 
                           <div className="flex items-center justify-between text-[8px] font-bold text-slate-400 uppercase tracking-wider">
                             <span>SECTION: {sectionName}</span>
-                            <span className={cn(isUrgent ? "text-red-500" : isPending ? "text-amber-500" : "text-emerald-500")}>
+                            <span className={cn(
+                              isUrgent ? "text-red-500" : 
+                              isService ? "text-blue-500" : 
+                              isRepair ? "text-yellow-500" : 
+                              "text-orange-500"
+                            )}>
                               {report.workType.toUpperCase()}
                             </span>
                           </div>
@@ -962,8 +1006,14 @@ export default function WorkshopTVMode({
             className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-md"
           >
             {/* Pulsing hazard lights backdrop */}
-            <div className="absolute inset-x-0 top-0 h-12 bg-[#d32f2f] animate-pulse opacity-90 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.2em] text-white">
-              🚨 NEW CRITICAL MAINTENANCE REQUEST LODGED 🚨
+            <div className={cn(
+              "absolute inset-x-0 top-0 h-12 animate-pulse opacity-90 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.2em] text-white",
+              activeAlert.workType === 'Break Down' ? "bg-[#d32f2f]" :
+              activeAlert.workType === 'Service' ? "bg-blue-600" : "bg-yellow-600"
+            )}>
+              {activeAlert.workType === 'Break Down' ? '🚨 NEW CRITICAL BREAKDOWN LOGGED 🚨' :
+               activeAlert.workType === 'Service' ? '🔧 NEW PREVENTATIVE HEALTH AUDIT ASSIGNED 🔧' :
+               '🛠️ NEW MAINTENANCE REPAIR DISPATCHED 🛠️'}
             </div>
 
             <motion.div
@@ -975,7 +1025,9 @@ export default function WorkshopTVMode({
                 "w-full max-w-2xl bg-slate-950 rounded-[36px] overflow-hidden border-4 p-8 relative flex flex-col gap-6",
                 activeAlert.workType === 'Break Down'
                   ? "border-[#d32f2f] shadow-[0_0_80px_rgba(239,68,68,0.4)]"
-                  : "border-amber-500 shadow-[0_0_80px_rgba(245,158,11,0.3)]"
+                  : activeAlert.workType === 'Service'
+                    ? "border-blue-500 shadow-[0_0_80px_rgba(59,130,246,0.3)]"
+                    : "border-yellow-500 shadow-[0_0_80px_rgba(234,179,8,0.3)]"
               )}
             >
               {/* Flashing border pulsing animation bar if Breakdown */}
@@ -987,13 +1039,16 @@ export default function WorkshopTVMode({
               <div className="flex items-center gap-4 border-b border-slate-900 pb-4 shrink-0">
                 <div className={cn(
                   "p-3 rounded-full animate-bounce shrink-0 text-white",
-                  activeAlert.workType === 'Break Down' ? "bg-[#d32f2f]" : "bg-amber-500"
+                  activeAlert.workType === 'Break Down' ? "bg-[#d32f2f]" :
+                  activeAlert.workType === 'Service' ? "bg-blue-600" : "bg-yellow-500"
                 )}>
                   <AlertTriangle size={28} />
                 </div>
                 <div>
                   <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white leading-none">
-                    {activeAlert.workType === 'Break Down' ? 'NEW CRITICAL BREAKDOWN LOGGED' : 'NEW MAINTENANCE DISPATCH ORDER'}
+                    {activeAlert.workType === 'Break Down' ? 'NEW CRITICAL BREAKDOWN LOGGED' :
+                     activeAlert.workType === 'Service' ? 'NEW SERVICE WORK PENDING' :
+                     'NEW MAINTENANCE REPAIR ORDER'}
                   </h2>
                   <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
                     <span className="w-2 h-2 bg-rose-500 rounded-full animate-ping" />
@@ -1039,7 +1094,7 @@ export default function WorkshopTVMode({
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-905 border border-slate-900">
+                  <div className="p-4 rounded-xl bg-slate-900 border border-slate-900">
                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">REPORTED TROUBLESHOOTING LOG</span>
                     <p className="text-slate-200 font-bold uppercase text-xs sm:text-sm leading-relaxed italic">
                       "{activeAlert.description || 'No descriptive comments logged.'}"
@@ -1060,7 +1115,14 @@ export default function WorkshopTVMode({
                 
                 <button
                   onClick={() => setActiveAlert(null)}
-                  className="px-6 py-3 bg-[#d32f2f] hover:bg-red-750 text-white border border-[#d32f2f] hover:border-red-700 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 cursor-pointer max-sm:w-full"
+                  className={cn(
+                    "px-6 py-3 text-white border font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 cursor-pointer max-sm:w-full",
+                    activeAlert.workType === 'Break Down' 
+                      ? "bg-[#d32f2f] hover:bg-red-750 border-[#d32f2f]" 
+                      : activeAlert.workType === 'Service'
+                        ? "bg-blue-600 hover:bg-blue-700 border-blue-600"
+                        : "bg-yellow-600 hover:bg-yellow-700 border-yellow-600"
+                  )}
                 >
                   ACKNOWLEDGE & DISMISS (OK)
                 </button>

@@ -699,13 +699,24 @@ export default function MaintainerWorkflow({
                             "group bg-white rounded-[40px] p-10 flex flex-col items-center transition-all duration-300 relative border-2",
                             machine?.id === m.id 
                               ? "border-singer-red shadow-[0_20px_50px_rgba(211,47,47,0.15)] scale-[1.02]" 
-                              : "border-transparent shadow-[0_15px_40px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-1 hover:border-slate-100"
+                              : machineReport
+                                ? machineReport.workType === 'Break Down'
+                                  ? "border-red-500 shadow-[0_15px_40px_rgba(239,68,68,0.06)] bg-red-50/10"
+                                  : machineReport.workType === 'Service'
+                                    ? "border-blue-500 shadow-[0_15px_40px_rgba(37,99,235,0.06)] bg-blue-50/10"
+                                    : "border-yellow-500 shadow-[0_15px_40px_rgba(234,179,8,0.06)] bg-yellow-50/10"
+                                : "border-transparent shadow-[0_15px_40px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-1 hover:border-slate-100"
                           )}
                         >
                           {/* Status Badge */}
                           {machineReport && (
                             <div className="absolute top-6 left-6 z-20 flex flex-col items-start gap-1">
-                              <div className="flex items-center gap-2 bg-singer-red text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-singer-red/20 animate-pulse">
+                              <div className={cn(
+                                "flex items-center gap-2 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg animate-pulse",
+                                machineReport.workType === 'Break Down' ? "bg-[#d32f2f] shadow-[#d32f2f]/20" :
+                                machineReport.workType === 'Service' ? "bg-blue-600 shadow-blue-600/20" :
+                                "bg-yellow-500 shadow-yellow-500/20"
+                              )}>
                                 <AlertCircle size={10} /> {machineReport.workType}
                               </div>
                               {machineReport.scheduledAt && (
@@ -820,12 +831,12 @@ export default function MaintainerWorkflow({
                     onClick={() => { setWorkType('Repair'); setStep(4); }}
                     className={cn(
                       "group p-8 sm:p-10 bg-white border-4 rounded-[40px] text-left transition-all flex flex-col gap-8",
-                      workType === 'Repair' ? "border-singer-red shadow-2xl" : "border-slate-50 hover:border-singer-red hover:shadow-[30px_30px_60px_rgba(211,47,47,0.05)]"
+                      workType === 'Repair' ? "border-yellow-500 shadow-2xl shadow-yellow-500/20" : "border-slate-50 hover:border-yellow-500 hover:shadow-[30px_30px_60px_rgba(234,179,8,0.05)]"
                     )}
                   >
                     <div className={cn(
                       "w-16 h-16 rounded-[20px] flex items-center justify-center text-white transition-all shadow-xl group-hover:rotate-12",
-                      workType === 'Repair' ? "bg-singer-red" : "bg-slate-900 group-hover:bg-singer-red"
+                      workType === 'Repair' ? "bg-yellow-500" : "bg-slate-900 group-hover:bg-yellow-500"
                     )}>
                       <Wrench size={32} />
                     </div>
@@ -839,12 +850,12 @@ export default function MaintainerWorkflow({
                     onClick={handleServiceAction}
                     className={cn(
                       "group p-8 sm:p-10 bg-white border-4 rounded-[40px] text-left transition-all flex flex-col gap-8",
-                      workType === 'Service' ? "border-singer-red shadow-2xl" : "border-slate-50 hover:border-singer-red hover:shadow-[30px_30px_60px_rgba(211,47,47,0.05)]"
+                      workType === 'Service' ? "border-blue-600 shadow-2xl shadow-blue-600/20" : "border-slate-50 hover:border-blue-600 hover:shadow-[30px_30px_60px_rgba(37,99,235,0.05)]"
                     )}
                   >
                     <div className={cn(
                       "w-16 h-16 rounded-[20px] flex items-center justify-center text-white transition-all shadow-xl group-hover:-rotate-12",
-                      workType === 'Service' ? "bg-singer-red" : "bg-slate-900 group-hover:bg-singer-red"
+                      workType === 'Service' ? "bg-blue-600" : "bg-slate-900 group-hover:bg-blue-600"
                     )}>
                       <Stethoscope size={32} />
                     </div>
