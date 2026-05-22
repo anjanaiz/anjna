@@ -2,11 +2,19 @@ import React, { useState } from 'react';
 import { User, JobRole } from '../types';
 import { INITIAL_USERS } from '../constants';
 import SingerLogo from './SingerLogo';
-import { User as UserIcon, Briefcase, ChevronRight, AlertCircle, LogIn, Lock } from 'lucide-react';
+import { User as UserIcon, Briefcase, ChevronRight, AlertCircle, LogIn, Lock, Tv } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
-export default function Login({ onLogin, onBack }: { onLogin: (user: User) => void, onBack: () => void }) {
+export default function Login({ 
+  onLogin, 
+  onBack,
+  onEnterTVMode
+}: { 
+  onLogin: (user: User) => void, 
+  onBack: () => void,
+  onEnterTVMode?: () => void
+}) {
   const [role, setRole] = useState<JobRole>('Maintainer');
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
@@ -171,6 +179,22 @@ export default function Login({ onLogin, onBack }: { onLogin: (user: User) => vo
             LOGIN
             <ChevronRight size={24} />
           </button>
+
+          {onEnterTVMode && (
+            <div className="pt-6 border-t border-slate-100 flex flex-col items-center gap-3">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                Alternative Operations Access
+              </div>
+              <button
+                type="button"
+                onClick={onEnterTVMode}
+                className="w-full bg-slate-100 hover:bg-slate-900 text-slate-700 hover:text-white py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2.5 transition-all border-2 border-transparent hover:border-slate-800 shadow-sm active:scale-95 cursor-pointer duration-200"
+              >
+                <Tv size={16} />
+                Open Workshop TV Display Mode
+              </button>
+            </div>
+          )}
         </form>
       </motion.div>
     </div>

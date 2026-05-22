@@ -22,6 +22,7 @@ const SupervisorDashboard = lazy(() => import('./components/SupervisorDashboard'
 const MaintainerWorkflow = lazy(() => import('./components/MaintainerWorkflow'));
 const FactorySelection = lazy(() => import('./components/DepartmentSelection'));
 const ModularFactoryFlow = lazy(() => import('./components/ModularDepartmentFlow'));
+const WorkshopTVMode = lazy(() => import('./components/WorkshopTVMode'));
 
 // Loading Fallback
 function LoadingScreen() {
@@ -87,7 +88,7 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-type Page = 'splash' | 'factory-selection' | 'login' | 'admin' | 'supervisor' | 'maintainer' | 'modular-factory';
+type Page = 'splash' | 'factory-selection' | 'login' | 'admin' | 'supervisor' | 'maintainer' | 'modular-factory' | 'tv-mode';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('splash');
@@ -389,7 +390,22 @@ export default function App() {
                 />
               );
             case 'login':
-              return <Login onLogin={handleLogin} onBack={() => setCurrentPage('department-selection')} />;
+              return (
+                <Login 
+                  onLogin={handleLogin} 
+                  onBack={() => setCurrentPage('factory-selection')} 
+                  onEnterTVMode={() => setCurrentPage('tv-mode')}
+                />
+              );
+            case 'tv-mode':
+              return (
+                <WorkshopTVMode 
+                  machines={machines}
+                  reports={reports}
+                  records={records}
+                  onExit={() => setCurrentPage('login')}
+                />
+              );
             case 'admin':
               return (
                 <AdminDashboard 
@@ -442,7 +458,7 @@ export default function App() {
     <ErrorBoundary>
       <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
         {/* Header (Hidden on splash, login, and factory selection) */}
-        {currentPage !== 'splash' && currentPage !== 'login' && currentPage !== 'factory-selection' && (
+        {currentPage !== 'splash' && currentPage !== 'login' && currentPage !== 'factory-selection' && currentPage !== 'tv-mode' && (
           <header className="bg-singer-red text-white px-4 py-8 sm:px-8 sm:py-10 flex justify-center items-center shrink-0 shadow-lg relative z-50">
             <SingerLogo variant="white" className="scale-110 sm:scale-125" />
           </header>
@@ -453,7 +469,7 @@ export default function App() {
         </main>
 
         {/* Basic Footer */}
-        {currentPage !== 'splash' && currentPage !== 'factory-selection' && currentPage !== 'modular-factory' && (
+        {currentPage !== 'splash' && currentPage !== 'factory-selection' && currentPage !== 'modular-factory' && currentPage !== 'tv-mode' && (
           <footer className="py-8 sm:py-12 px-4 sm:px-8 text-center bg-slate-50 border-t border-slate-200">
             <p className="text-[9px] sm:text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] sm:tracking-[0.4em] leading-relaxed">
               © {new Date().getFullYear()} SINGER (Sri Lanka) PLC <br className="sm:hidden" /> // INDUSTRIAL MAINTENANCE PROTOCOL
