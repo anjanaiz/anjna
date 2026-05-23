@@ -1045,11 +1045,11 @@ export default function WorkshopTVMode({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 md:p-12 bg-black/95 backdrop-blur-md"
           >
             {/* Pulsing hazard lights backdrop */}
             <div className={cn(
-              "absolute inset-x-0 top-0 h-12 animate-pulse opacity-90 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.2em] text-white",
+              "absolute inset-x-0 top-0 h-16 animate-pulse opacity-90 flex items-center justify-center text-[13px] md:text-sm font-black uppercase tracking-[0.25em] text-white z-10",
               activeAlert.workType === 'Break Down' ? "bg-[#d32f2f]" :
               activeAlert.workType === 'Service' ? "bg-blue-600" : "bg-yellow-600"
             )}>
@@ -1064,68 +1064,68 @@ export default function WorkshopTVMode({
               exit={{ scale: 0.9, y: -30, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 120 }}
               className={cn(
-                "w-full max-w-2xl bg-slate-950 rounded-[36px] overflow-hidden border-4 p-8 relative flex flex-col gap-6",
+                "w-full max-w-5xl bg-slate-950 rounded-[44px] overflow-hidden border-4 p-10 md:p-14 relative flex flex-col gap-8",
                 activeAlert.workType === 'Break Down'
-                  ? "border-[#d32f2f] shadow-[0_0_80px_rgba(239,68,68,0.4)]"
+                  ? "border-[#d32f2f] shadow-[0_0_100px_rgba(239,68,68,0.55)]"
                   : activeAlert.workType === 'Service'
-                    ? "border-blue-500 shadow-[0_0_80px_rgba(59,130,246,0.3)]"
-                    : "border-yellow-500 shadow-[0_0_80px_rgba(234,179,8,0.3)]"
+                    ? "border-blue-500 shadow-[0_0_100px_rgba(59,130,246,0.45)]"
+                    : "border-yellow-500 shadow-[0_0_100px_rgba(234,179,8,0.45)]"
               )}
             >
               {/* Flashing border pulsing animation bar if Breakdown */}
               {activeAlert.workType === 'Break Down' && (
-                <div className="absolute inset-0 border-4 border-[#d32f2f] animate-pulse rounded-[32px] pointer-events-none" />
+                <div className="absolute inset-0 border-4 border-[#d32f2f] animate-pulse rounded-[40px] pointer-events-none" />
               )}
 
               {/* Popup Header with warning icon */}
-              <div className="flex items-center gap-4 border-b border-slate-900 pb-4 shrink-0">
+              <div className="flex items-center gap-5 border-b border-slate-900 pb-5 mt-4 shrink-0">
                 <div className={cn(
-                  "p-3 rounded-full animate-bounce shrink-0 text-white",
+                  "p-4 rounded-full animate-bounce shrink-0 text-white",
                   activeAlert.workType === 'Break Down' ? "bg-[#d32f2f]" :
                   activeAlert.workType === 'Service' ? "bg-blue-600" : "bg-yellow-500"
                 )}>
-                  <AlertTriangle size={28} />
+                  <AlertTriangle size={36} />
                 </div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white leading-none">
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-white leading-none">
                     {activeAlert.workType === 'Break Down' ? 'NEW CRITICAL BREAKDOWN LOGGED' :
                      activeAlert.workType === 'Service' ? 'NEW SERVICE WORK PENDING' :
                      'NEW MAINTENANCE REPAIR ORDER'}
                   </h2>
-                  <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-rose-500 rounded-full animate-ping" />
+                  <p className="text-xs sm:text-sm font-bold text-slate-450 uppercase tracking-widest mt-2 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
                     DISPATCH TIME: {new Date(activeAlert.createdAt).toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               </div>
 
               {/* Main alert card details */}
-              <div className="flex flex-col md:flex-row gap-6 my-2">
+              <div className="flex flex-col lg:flex-row gap-8 my-4">
                 
                 {/* Machine View */}
-                <div className="w-full md:w-1/2 shrink-0">
+                <div className="w-full lg:w-1/2 shrink-0">
                   {(() => {
                     const mach = machines.find(m => m.id === activeAlert.machineId);
                     return mach?.image ? (
-                      <div className="w-full h-44 rounded-2xl bg-black/45 flex items-center justify-center p-3 border border-white/5 overflow-hidden">
+                      <div className="w-full h-64 lg:h-72 rounded-2xl bg-black/45 flex items-center justify-center p-4 border border-white/5 overflow-hidden">
                         <img 
                           src={mach.image} 
                           alt={mach.name} 
-                          className="w-full h-full object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)] brightness-95"
+                          className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.65)] brightness-95"
                           referrerPolicy="no-referrer"
                         />
                       </div>
                     ) : (
-                      <div className="w-full h-44 rounded-2xl bg-slate-900/50 border border-slate-800 flex flex-col items-center justify-center p-4 text-center">
-                        <Activity className="text-slate-500 animate-pulse mb-2 animate-bounce" size={32} />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">SINGER TELEMETRY BROADCAST</span>
+                      <div className="w-full h-64 lg:h-72 rounded-2xl bg-slate-900/50 border border-slate-800 flex flex-col items-center justify-center p-6 text-center">
+                        <Activity className="text-slate-500 animate-pulse mb-3 animate-bounce" size={48} />
+                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">SINGER TELEMETRY BROADCAST</span>
                       </div>
                     );
                   })()}
                 </div>
 
                 {/* Machine Description */}
-                <div className="flex-1 space-y-4">
+                <div className="flex-1 space-y-6">
                   {(() => {
                     const mach = machines.find(m => m.id === activeAlert.machineId);
                     const sectionName = mach ? getSolidSection(mach) : 'Main Solid';
@@ -1143,33 +1143,33 @@ export default function WorkshopTVMode({
                     return (
                       <>
                         <div>
-                          <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">WORKSTATION / LINE</span>
-                          <h3 className="text-xl font-black italic tracking-tight uppercase text-white leading-tight mt-1">
+                          <span className="block text-xs font-black text-slate-500 uppercase tracking-widest">WORKSTATION / LINE</span>
+                          <h3 className="text-2xl sm:text-3xl font-black italic tracking-tight uppercase text-white leading-tight mt-1.5">
                             {activeAlert.machineName.replace(/<br\s*\/?>/gi, ' ')}
                           </h3>
                           
-                          <div className="flex flex-wrap items-center gap-2 mt-2">
-                            <span className="text-[10px] font-extrabold text-slate-300 uppercase tracking-wider">
+                          <div className="flex flex-wrap items-center gap-3 mt-3">
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-300 uppercase tracking-wider">
                               SECTION: {sectionName.toUpperCase()}
                             </span>
                             <span className="text-slate-700 font-bold">•</span>
-                            <span className="text-[10px] font-extrabold text-slate-300 uppercase tracking-wider">
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-300 uppercase tracking-wider">
                               LOCATION: {activeAlert.department.toUpperCase()}
                             </span>
                           </div>
 
-                          <div className="mt-3.5">
-                            <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1.5">PRIORITY STATUS</span>
-                            <div className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider", priorityColor)}>
-                              <span className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" />
+                          <div className="mt-4">
+                            <span className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">PRIORITY STATUS</span>
+                            <div className={cn("inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-xs sm:text-sm font-black uppercase tracking-wider", priorityColor)}>
+                              <span className="w-2.5 h-2.5 bg-current rounded-full animate-pulse" />
                               {priorityLabel}
                             </div>
                           </div>
                         </div>
 
-                        <div className="p-4 rounded-xl bg-slate-900 border border-slate-900">
-                          <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-sans">ISSUE DETAILS & TROUBLESHOOTING LOG</span>
-                          <p className="text-slate-200 font-bold uppercase text-xs sm:text-sm leading-relaxed italic">
+                        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-900 shadow-inner">
+                          <span className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 font-sans">ISSUE DETAILS & TROUBLESHOOTING LOG</span>
+                          <p className="text-slate-200 font-bold uppercase text-sm sm:text-base lg:text-lg leading-relaxed italic">
                             "{activeAlert.description || 'No descriptive comments logged.'}"
                           </p>
                         </div>
@@ -1181,10 +1181,10 @@ export default function WorkshopTVMode({
               </div>
 
               {/* Progress feedback block and auto manual buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-900 pt-5 gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">
+              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-900 pt-6 gap-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-3.5 h-3.5 bg-red-500 rounded-full animate-ping" />
+                  <span className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em]">
                     AUTO DISMISS IN 30S // ASSIGNMENT DEPLOYED LIVE TO TERMINAL
                   </span>
                 </div>
@@ -1192,7 +1192,7 @@ export default function WorkshopTVMode({
                 <button
                   onClick={() => setActiveAlert(null)}
                   className={cn(
-                    "px-6 py-3 text-white border font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 cursor-pointer max-sm:w-full",
+                    "px-8 py-4 sm:py-5 text-white border font-black text-sm uppercase tracking-widest rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer max-sm:w-full",
                     activeAlert.workType === 'Break Down' 
                       ? "bg-[#d32f2f] hover:bg-red-750 border-[#d32f2f]" 
                       : activeAlert.workType === 'Service'
