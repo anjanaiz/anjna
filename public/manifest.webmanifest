@@ -2,38 +2,19 @@
   "name": "SINGER Maintenance E-Report",
   "short_name": "Singer Maintain",
   "description": "Industrial Maintenance Protocol & Reporting System",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": ".",
   "display": "standalone",
-  "background_color": "#020617",
+  "background_color": "#ffffff",
   "theme_color": "#ed1c24",
-  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
+      "src": "https://www.google.com/s2/favicons?domain=singer.lk&sz=64",
+      "sizes": "64x64",
+      "type": "image/png"
     },
     {
       "src": "https://www.google.com/s2/favicons?domain=singer.lk&sz=128",
       "sizes": "128x128",
-      "type": "image/png"
-    },
-    {
-      "src": "https://www.google.com/s2/favicons?domain=singer.lk&sz=256",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "https://www.google.com/s2/favicons?domain=singer.lk&sz=256",
-      "sizes": "512x512",
       "type": "image/png"
     }
   ]

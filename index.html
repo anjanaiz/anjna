@@ -4,22 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>SINGER Maintenance E-Report</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="manifest" href="/public/manifest.webmanifest" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Singer Maintain" />
-    <link rel="icon" type="image/png" href="/icon.svg" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Service Worker registered successfully!', reg))
-            .catch(err => console.error('Service Worker registration failed:', err));
-        });
-      }
-    </script>
+    <link rel="icon" type="image/png" href="https://www.google.com/s2/favicons?domain=singer.lk&sz=32" />
+    <link rel="apple-touch-icon" href="https://www.google.com/s2/favicons?domain=singer.lk&sz=180" />
   </head>
   <body>
     <div id="root"></div>
