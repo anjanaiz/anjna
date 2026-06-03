@@ -1560,12 +1560,32 @@ export default function SupervisorDashboard({
 
         {activeTab === 'map' && (
           <motion.div
-            key="future-improvements"
+            key="factory-floor-map"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             className="space-y-12"
           >
+            <div className="bg-white p-12 rounded-[40px] border-2 border-slate-100 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-12 opacity-[0.03] text-slate-900 text-6xl sm:text-[12rem] font-black italic select-none">
+                FLOOR
+              </div>
+              <div className="relative z-10 space-y-6">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-2 bg-singer-red" />
+                  <h2 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Interactive <span className="text-singer-red underline decoration-slate-900 underline-offset-8">Floor Map</span></h2>
+                </div>
+                <p className="text-xl font-bold text-slate-400 uppercase tracking-widest max-w-2xl">Real-time status tracking and spatial overview of machines inside the Modular Factory.</p>
+              </div>
+            </div>
+
+            {/* Scrollable Container for Horizontal Viewport Adaption on Touch/Mobile Screens */}
+            <div className="w-full overflow-x-auto pb-6 select-none -mx-4 px-4 sm:mx-0 sm:px-0">
+              <div className="min-w-[900px] lg:min-w-0 lg:w-full h-[650px] sm:h-[750px]">
+                <ModularMap machines={machines} reports={reports} />
+              </div>
+            </div>
+
             <div className="bg-white p-12 rounded-[40px] border-2 border-slate-100 shadow-xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-12 opacity-[0.03] text-slate-900 text-[12rem] font-black italic select-none">
                 2026

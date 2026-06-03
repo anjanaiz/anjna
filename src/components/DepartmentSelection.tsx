@@ -11,7 +11,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { FACTORIES } from '../constants';
+import { FACTORIES, SUB_LOCATIONS } from '../constants';
 
 import { Machine, MachineReport } from '../types';
 
@@ -92,11 +92,19 @@ export default function FactorySelection({
                   dept.color
                 )}>
                   <Icon size={32} />
-                  {reports.filter(r => r.department === dept.id && r.status === 'pending').length > 0 && (
-                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-singer-red rounded-full flex items-center justify-center text-[10px] font-black border-4 border-white shadow-lg animate-bounce">
-                      {reports.filter(r => r.department === dept.id && r.status === 'pending').length}
-                    </div>
-                  )}
+                  {(() => {
+                    const pendingCount = reports.filter(r => 
+                      r.status === 'pending' && (
+                        r.department === dept.id || 
+                        (dept.id === 'Other' && SUB_LOCATIONS.includes(r.department))
+                      )
+                    ).length;
+                    return pendingCount > 0 ? (
+                      <div className="absolute -top-2 -right-2 w-7 h-7 bg-singer-red rounded-full flex items-center justify-center text-[10px] font-black border-4 border-white shadow-lg animate-bounce">
+                        {pendingCount}
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
 
                 <div className="relative z-10 space-y-2">
@@ -104,11 +112,19 @@ export default function FactorySelection({
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-singer-red transition-colors">
                       {dept.tagline}
                     </div>
-                    {reports.filter(r => r.department === dept.id && r.status === 'pending').length > 0 && (
-                      <span className="flex items-center gap-1 text-[8px] font-black text-singer-red uppercase bg-singer-red/5 px-2 py-0.5 rounded-full border border-singer-red/10">
-                        <AlertCircle size={8} /> Active Alerts
-                      </span>
-                    )}
+                    {(() => {
+                      const pendingCount = reports.filter(r => 
+                        r.status === 'pending' && (
+                          r.department === dept.id || 
+                          (dept.id === 'Other' && SUB_LOCATIONS.includes(r.department))
+                        )
+                      ).length;
+                      return pendingCount > 0 ? (
+                        <span className="flex items-center gap-1 text-[8px] font-black text-singer-red uppercase bg-singer-red/5 px-2 py-0.5 rounded-full border border-singer-red/10">
+                          <AlertCircle size={8} /> Active Alerts
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                   <h3 className="text-2xl sm:text-3xl font-black uppercase text-slate-800 tracking-tighter group-hover:text-slate-900 border-b-2 border-slate-100 pb-2 mb-4">
                     {dept.name}
